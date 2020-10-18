@@ -38,9 +38,17 @@ Thread::Thread(char* threadName)
     stackTop = NULL;
     stack = NULL;
     status = JUST_CREATED;
+
 #ifdef USER_PROGRAM
     space = NULL;
 #endif
+
+    tid = scheduler->acquireTid(this);
+    if(tid == -1)
+        printf("No more space to create new thread!");
+    ASSERT(tid != -1);
+    userID = 0;
+
 }
 
 //----------------------------------------------------------------------
@@ -62,6 +70,7 @@ Thread::~Thread()
     ASSERT(this != currentThread);
     if (stack != NULL)
 	DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
+    scheduler->releaseTid(this);
 }
 
 //----------------------------------------------------------------------
