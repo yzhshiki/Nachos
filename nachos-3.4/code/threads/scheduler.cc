@@ -30,6 +30,11 @@
 Scheduler::Scheduler()
 { 
     readyList = new List; 
+    this->threadPool.clear();
+    for(int i = 0; i < MAX_THREAD_NUMBER; i++)
+    {
+        this->tids.push(i);
+    }
 } 
 
 //----------------------------------------------------------------------
@@ -144,4 +149,39 @@ Scheduler::Print()
 {
     printf("Ready list contents:\n");
     readyList->Mapcar((VoidFunctionPtr) ThreadPrint);
+}
+
+int Scheduler::acquireTid(Thread *t)
+{
+    if(tids.size() == 0)
+        return -1;
+    int tid = tids.front();
+    tids.pop();
+    threadPool.push_back(t);
+    return tid;
+}
+
+void Scheduler::releaseTid(Thread *t)
+{
+    tids.push(t->getTid());
+    for(std::vector<Thread *>::iterator t0 = threadPool.begin(); t0 < threadPool.end(); t0++)
+    {
+        if(*t0 == t)
+        {
+            threadPool.erase(t0);
+            break;
+        }
+    }
+}
+
+void Scheduler::TS()
+{
+    DEBUG('t', "Entering TS");
+
+    const char* TStoString[] = {"JUST_CREATED", "RUNNING", "READY", "BLOCKED"};
+    printf("USERID\tTID\tNAME\tSTATUS");
+    for(std::vector<Thread *>::iterator t0 = threadPool.begin(); t0 < threadPool.end(); t0++)
+    {
+        printf("%d\t%d\t%s\t%s\n", (*t0)->getUserID(), (*t0)->getTid(), (*t0)->getName(), TStoString[(*t0)->getThreadStatus()]);
+    }
 }

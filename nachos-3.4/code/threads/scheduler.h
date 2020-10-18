@@ -9,9 +9,13 @@
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
 
+#define MAX_THREAD_NUMBER 128
+
 #include "copyright.h"
 #include "list.h"
 #include "thread.h"
+#include <vector>
+#include <queue>
 
 // The following class defines the scheduler/dispatcher abstraction -- 
 // the data structures and operations needed to keep track of which 
@@ -31,6 +35,15 @@ class Scheduler {
   private:
     List *readyList;  		// queue of threads that are ready to run,
 				// but not running
+  
+  private:
+    std::vector<Thread *> threadPool;
+    std::queue<int> tids;
+  
+  public:
+    int acquireTid(Thread *t);
+    void releaseTid(Thread *t);
+    void TS();  //打印所有进程信息
 };
 
 #endif // SCHEDULER_H
