@@ -36,13 +36,14 @@ class Scheduler {
     List *readyList;  		// queue of threads that are ready to run,
 				// but not running
   
+  
   private:
-    std::vector<Thread *> threadPool;
-    std::queue<int> tids;
+    std::vector<Thread *> threadPool;   //线程池
+    std::queue<int> tids;   //可用的tid队列
   
   public:
-    int acquireTid(Thread *t);
-    void releaseTid(Thread *t);
+    int acquireTid(Thread *t);  //用于给线程分配tid
+    void releaseTid(Thread *t); //给线程释放tid
     void TS();  //打印所有进程信息
 };
 

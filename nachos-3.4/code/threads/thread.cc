@@ -43,10 +43,10 @@ Thread::Thread(char* threadName)
     space = NULL;
 #endif
 
-    tid = scheduler->acquireTid(this);
-    if(tid == -1)
+    tid = scheduler->acquireTid(this);  //申请一个tid
+    if(tid == -1)   //没有tid了，即线程池满了
         printf("No more space to create new thread!");
-    ASSERT(tid != -1);
+    ASSERT(tid != -1);  
     userID = 0;
 
 }
@@ -70,7 +70,7 @@ Thread::~Thread()
     ASSERT(this != currentThread);
     if (stack != NULL)
 	DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
-    scheduler->releaseTid(this);
+    scheduler->releaseTid(this);    //释放tid
 }
 
 //----------------------------------------------------------------------

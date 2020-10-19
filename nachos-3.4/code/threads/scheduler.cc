@@ -30,6 +30,8 @@
 Scheduler::Scheduler()
 { 
     readyList = new List; 
+
+    //下面初始化线程池与可用tid队列
     this->threadPool.clear();
     for(int i = 0; i < MAX_THREAD_NUMBER; i++)
     {
@@ -174,6 +176,11 @@ void Scheduler::releaseTid(Thread *t)
     }
 }
 
+//------------------------------------------------------------------
+//打印所有进程信息
+//线程状态返回的原本是枚举类型变量，C语言中，枚举类型是被当做int或unsigned int类型来处理的
+//于是这里写一个int到字符串的映射，用来输出线程状态
+//------------------------------------------------------------------
 void Scheduler::TS()
 {
     DEBUG('t', "Entering TS");

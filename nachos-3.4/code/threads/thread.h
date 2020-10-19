@@ -130,6 +130,7 @@ class Thread {
     AddrSpace *space;			// User code this thread is running.
 #endif
 
+//把自己添加的变量、函数都写在最后方便使用
 private:
   int userID;
   int tid;
