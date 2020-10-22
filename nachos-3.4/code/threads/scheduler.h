@@ -9,7 +9,7 @@
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
 
-#define MAX_THREAD_NUMBER 128
+#define MAX_THREAD_NUMBER 128   //定义线程池容量
 
 #include "copyright.h"
 #include "list.h"

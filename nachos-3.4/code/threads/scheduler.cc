@@ -153,6 +153,11 @@ Scheduler::Print()
     readyList->Mapcar((VoidFunctionPtr) ThreadPrint);
 }
 
+//-----------------------------------------------------------------------
+//用于给线程分配tid
+//若可用tid队列为空则返回-1
+//若不为空，则分配队首数值作为tid，并把线程指针放入线程池
+//------------------------------------------------------------------------
 int Scheduler::acquireTid(Thread *t)
 {
     if(tids.size() == 0)
@@ -163,6 +168,10 @@ int Scheduler::acquireTid(Thread *t)
     return tid;
 }
 
+//-----------------------------------------------------------------------
+//用于给线程释放tid
+//在线程池vector找到线程指针，调用erase方法删除
+//-----------------------------------------------------------------------
 void Scheduler::releaseTid(Thread *t)
 {
     tids.push(t->getTid());
