@@ -134,12 +134,18 @@ class Thread {
 private:
   int userID;
   int tid;
+  int priority;
+  int ticks;
 
 public:
+  void init(char* threadName);
+  Thread(char* threadName, int prio);
   int getUserID(){ return (userID); }
   int getTid(){ return (tid); }
   void setUserID(int userid){ userID = userid; }
   int getThreadStatus(){ return status; }
+  int getPriority(){ return priority; }
+  void setPriority(int prio){ priority = prio; }
 };
 
 // Magical machine-dependent routines, defined in switch.s

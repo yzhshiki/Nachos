@@ -29,8 +29,9 @@
 
 Scheduler::Scheduler()
 { 
-    readyList = new List; 
-
+    memset(tid_Ticks, 0, sizeof(int));
+    this->scheduleMethod = FIFO;
+    readyList = new List;
     //下面初始化线程池与可用tid队列
     this->threadPool.clear();
     for(int i = 0; i < MAX_THREAD_NUMBER; i++)
@@ -63,7 +64,15 @@ Scheduler::ReadyToRun (Thread *thread)
     DEBUG('t', "Putting thread %s on ready list.\n", thread->getName());
 
     thread->setStatus(READY);
-    readyList->Append((void *)thread);
+    switch(scheduleMethod)
+    {
+        case PRIORIY:
+            readyList->SortedInsert((void *)thread, thread->getPriority()); //根据优先级插入
+            break;
+        default:
+            readyList->Append((void *)thread);
+    }
+    
 }
 
 //----------------------------------------------------------------------
@@ -129,6 +138,7 @@ Scheduler::Run (Thread *nextThread)
     // before now (for example, in Thread::Finish()), because up to this
     // point, we were still running on the old thread's stack!
     if (threadToBeDestroyed != NULL) {
+        printf("destorying thread %d\n", threadToBeDestroyed->getTid());
         delete threadToBeDestroyed;
 	threadToBeDestroyed = NULL;
     }
@@ -195,9 +205,19 @@ void Scheduler::TS()
     DEBUG('t', "Entering TS");
 
     const char* TStoString[] = {"JUST_CREATED", "RUNNING", "READY", "BLOCKED"};
-    printf("USERID\tTID\tNAME\tSTATUS");
+    printf("USERID\tTID\tNAME\tSTATUS\n");
     for(std::vector<Thread *>::iterator t0 = threadPool.begin(); t0 < threadPool.end(); t0++)
     {
         printf("%d\t%d\t%s\t%s\n", (*t0)->getUserID(), (*t0)->getTid(), (*t0)->getName(), TStoString[(*t0)->getThreadStatus()]);
     }
 }
+
+void Scheduler::preemptive_sched(Thread* t)
+{
+    // printf("--------preemptive_scheduling--------\n");
+    if(scheduleMethod == PRIORIY)
+        if(currentThread->getPriority() > t->getPriority())    //若新线程优先级更高
+            currentThread->Yield();                                 //当前线程主动yield
+    return;
+}
+

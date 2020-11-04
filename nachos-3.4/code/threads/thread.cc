@@ -31,24 +31,35 @@
 //
 //	"threadName" is an arbitrary string, useful for debugging.
 //----------------------------------------------------------------------
-
-Thread::Thread(char* threadName)
+void Thread::init(char* threadName)
 {
-    name = threadName;
-    stackTop = NULL;
-    stack = NULL;
-    status = JUST_CREATED;
+    this->name = threadName;
+    this->stackTop = NULL;
+    this->stack = NULL;
+    this->status = JUST_CREATED;
 
 #ifdef USER_PROGRAM
     space = NULL;
 #endif
 
-    tid = scheduler->acquireTid(this);  //申请一个tid
-    if(tid == -1)   //没有tid了，即线程池满了
+    this->tid = scheduler->acquireTid(this);  //申请一个tid
+    if(this->tid == -1)   //没有tid了，即线程池满了
         printf("No more space to create new thread!");
-    ASSERT(tid != -1);  
-    userID = 0;
+    ASSERT(this->tid != -1);  
+    this->userID = 0;
+    this->priority = 3;
+    scheduler->initTicks(this); //让scheduler针对这个线程设置ticks
+}
 
+Thread::Thread(char* threadName)
+{
+    init(threadName);
+}
+
+Thread::Thread(char* threadName, int prio)
+{
+    init(threadName);
+    this->priority = prio;
 }
 
 //----------------------------------------------------------------------
@@ -96,6 +107,8 @@ Thread::~Thread()
 void 
 Thread::Fork(VoidFunctionPtr func, int arg)
 {
+    // printf("Forking thread \"%s\" with func = 0x%x, arg = %d\n",
+	//   name, (int) func, arg);
     DEBUG('t', "Forking thread \"%s\" with func = 0x%x, arg = %d\n",
 	  name, (int) func, arg);
     
@@ -105,6 +118,9 @@ Thread::Fork(VoidFunctionPtr func, int arg)
     scheduler->ReadyToRun(this);	// ReadyToRun assumes that interrupts 
 					// are disabled!
     (void) interrupt->SetLevel(oldLevel);   //执行完后，中断恢复为原来的状态
+
+    scheduler->preemptive_sched(this);
+
 }    
 
 //----------------------------------------------------------------------
@@ -155,6 +171,7 @@ Thread::Finish ()
     (void) interrupt->SetLevel(IntOff);		
     ASSERT(this == currentThread);
     
+    // printf("Finishing thread \"%s\"\n", getName());
     DEBUG('t', "Finishing thread \"%s\"\n", getName());
     
     threadToBeDestroyed = currentThread;
@@ -183,11 +200,13 @@ Thread::Finish ()
 void
 Thread::Yield ()
 {
+
     Thread *nextThread;
     IntStatus oldLevel = interrupt->SetLevel(IntOff);   //关中断
     
     ASSERT(this == currentThread);
     
+    // printf("Yielding thread \"%s\"\n", getName());
     DEBUG('t', "Yielding thread \"%s\"\n", getName());
     
     nextThread = scheduler->FindNextToRun();
@@ -225,6 +244,7 @@ Thread::Sleep ()
     ASSERT(this == currentThread);
     ASSERT(interrupt->getLevel() == IntOff);
     
+    // printf("Sleeping thread \"%s\"\n", getName());
     DEBUG('t', "Sleeping thread \"%s\"\n", getName());
 
     status = BLOCKED;

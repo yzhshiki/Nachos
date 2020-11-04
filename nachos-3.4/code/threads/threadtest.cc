@@ -28,7 +28,6 @@ void
 SimpleThread(int which)
 {
     int num;
-    
     for (num = 0; num < 5; num++) {
 	printf("*** thread %d looped %d times\n", which, num);
         currentThread->Yield();
@@ -48,12 +47,12 @@ ThreadTest1()
 
     Thread *t = new Thread("forked thread");
 
-    t->Fork(SimpleThread, 1);   //线程创建执行，标识为1（调用thread.cc的构造方法）
+    t->Fork(SimpleThread, 1);
     SimpleThread(0);
 }
 
 //---------------------------------------------------------------------
-//Lab1Exercise3Thread
+// Lab1Exercise3Thread 打印线程userID tid
 // 	Loop 5 times, yielding the CPU to another ready thread 
 //	each iteration.
 //
@@ -66,7 +65,7 @@ Lab1Exercise3Thread(int which)
 {
     int num;
     
-    for (num = 0; num < 5; num++) {
+    for (num = 0; num < 2; num++) {
 	printf("*** thread %d (userID = %d, tid = %d) looped %d times\n", which,currentThread->getUserID(),\
                             currentThread->getTid(),num);
         currentThread->Yield();
@@ -85,7 +84,7 @@ Lab1Exercise3()
     DEBUG('t', "Entering Lab1Exercise3");
 
     Thread *t = NULL;
-    for(int i = 0; i < MAX_THREAD_NUMBER - 120; i++)
+    for(int i = 0; i < 4; i++)
     {
         Thread *t = new Thread("test thread");
         t->Fork(Lab1Exercise3Thread, t->getTid());
@@ -95,24 +94,68 @@ Lab1Exercise3()
 }
 
 //----------------------------------------------------------------------
-// Lab1Exercise4
+// Lab1Exercise3_2
 // 测试实现ts功能：显示所有线程的信息和状态
 //----------------------------------------------------------------------
 
 void
-Lab1Exercise4()
+Lab1Exercise3_2()
 {
-    DEBUG('t', "Entering Lab1Exercise3");
+    DEBUG('t', "Entering Lab1Exercise3_2");
 
     Thread *t = NULL;
-    for(int i = 0; i < MAX_THREAD_NUMBER - 120; i++)
-    {
+    for(int i = 0; i < 4; i++)
         Thread *t = new Thread("Test Thread");
-        // t->Fork(Lab1Exercise3Thread, t->getTid());
-    }
-
     scheduler->TS();
 }
+
+//----------------------------------------------------------------------
+// Lab1Exercise5
+// 测试实现抢占式优先级调度
+//----------------------------------------------------------------------
+void 
+Lab1Exercise5()
+{
+    DEBUG('t', "Entering Lab1Exercise5");
+    Thread* t3 = new Thread("thread 3", 3);
+    t3->Fork(Lab1Exercise3Thread, 3);   //第二个参数是传给Lab1Exercise3Thread的，要与线程名一致，而不是tid
+
+    Thread* t2 = new Thread("thread 2", 2);
+    t2->Fork(Lab1Exercise3Thread, 2);
+
+    Thread* t1 = new Thread("thread 1", 1);
+    t1->Fork(Lab1Exercise3Thread, 1);
+
+    // printf("thread main finished threadtest\n");
+    // Lab1Exercise3Thread(0);
+}
+
+//----------------------------------------------------------------------
+// Lab1Challenge1
+// 测试实现时间片轮转调度
+//----------------------------------------------------------------------
+void Lab1Challenge1Thread(int which)
+{
+    for(int i = 0; i < 5; i++){
+        printf("*** %s looped %d times with ticks: %d\n", currentThread->getName(), i + 1, 
+                            scheduler->checkTicks(currentThread));
+        interrupt->OneTick();
+    }
+}
+
+void Lab1Challenge1()
+{
+    DEBUG('t', "Entering Lab1Challenge1");
+    Thread* t3 = new Thread("Thread 3");
+    t3->Fork(Lab1Challenge1Thread, 3);
+
+    Thread* t2 = new Thread("Thread 2");
+    t2->Fork(Lab1Challenge1Thread, 2);
+
+    Thread* t1 = new Thread("Thread 1");
+    t1->Fork(Lab1Challenge1Thread, 1);
+}
+
 
 //----------------------------------------------------------------------
 // ThreadTest
@@ -130,7 +173,14 @@ ThreadTest()
         Lab1Exercise3();
         break;
     case 3:
-        Lab1Exercise4();
+        Lab1Exercise3_2();
+        break;
+    case 4:
+        Lab1Exercise5();
+        break;
+    case 5:
+        Lab1Challenge1();
+        break;
     default:
 	    printf("No test specified.\n");
 	    break;

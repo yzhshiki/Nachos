@@ -39,6 +39,7 @@ static char *intTypeNames[] = { "timer", "disk", "console write",
 //	"param" is the argument to pass to the procedure
 //	"time" is when (in simulated time) the interrupt is to occur
 //	"kind" is the hardware device that generated the interrupt
+// 中断队列中需要处理的中断
 //----------------------------------------------------------------------
 
 PendingInterrupt::PendingInterrupt(VoidFunctionPtr func, int param, int time, 
@@ -121,7 +122,7 @@ Interrupt::SetLevel(IntStatus now)
 						// interrupts
 
     ChangeLevel(old, now);			// change to new state
-    if ((now == IntOn) && (old == IntOff))
+    if ((now == IntOn) && (old == IntOff)) // 当从关中断到开中断时，时钟前进
 	OneTick();				// advance simulated time
     return old;
 }
@@ -150,15 +151,18 @@ Interrupt::Enable()
 void
 Interrupt::OneTick()
 {
+    // printf("Entering Onetick\n");
     MachineStatus old = status;
 
 // advance simulated time
     if (status == SystemMode) {
         stats->totalTicks += SystemTick;
-	stats->systemTicks += SystemTick;
+	    stats->systemTicks += SystemTick;
+        scheduler->addTicks(currentThread, SystemTick);
     } else {					// USER_PROGRAM
-	stats->totalTicks += UserTick;
-	stats->userTicks += UserTick;
+	    stats->totalTicks += UserTick;
+	    stats->userTicks += UserTick;
+        scheduler->addTicks(currentThread, UserTick);
     }
     DEBUG('i', "\n== Tick %d ==\n", stats->totalTicks);
 
@@ -169,6 +173,8 @@ Interrupt::OneTick()
     while (CheckIfDue(FALSE))		// check for pending interrupts
 	;
     ChangeLevel(IntOff, IntOn);		// re-enable interrupts
+    
+    
     if (yieldOnReturn) {		// if the timer device handler asked 
 					// for a context switch, ok to do it now
 	yieldOnReturn = FALSE;
@@ -260,6 +266,7 @@ Interrupt::Halt()
 //	"fromNow" is how far in the future (in simulated time) the 
 //		 interrupt is to occur
 //	"type" is the hardware device that generated the interrupt
+// 将一个中断插入中断队列
 //----------------------------------------------------------------------
 void
 Interrupt::Schedule(VoidFunctionPtr handler, int arg, int fromNow, IntType type)
@@ -290,6 +297,7 @@ Interrupt::Schedule(VoidFunctionPtr handler, int arg, int fromNow, IntType type)
 bool
 Interrupt::CheckIfDue(bool advanceClock)
 {
+    // printf("Entering CheckIfDue\n");
     MachineStatus old = status;
     int when;
 
@@ -299,19 +307,19 @@ Interrupt::CheckIfDue(bool advanceClock)
 	DumpState();
     PendingInterrupt *toOccur = 
 		(PendingInterrupt *)pending->SortedRemove(&when);
-
     if (toOccur == NULL)		// no pending interrupts
 	return FALSE;			
 
-    if (advanceClock && when > stats->totalTicks) {	// advance the clock
+    if (advanceClock && when > stats->totalTicks) {	// advance the clock 跳转到中断将要发生的时间
 	stats->idleTicks += (when - stats->totalTicks);
 	stats->totalTicks = when;
-    } else if (when > stats->totalTicks) {	// not time yet, put it back
+    } else if (when > stats->totalTicks) {	// not time yet, put it back 再放回去
 	pending->SortedInsert(toOccur, when);
 	return FALSE;
     }
 
 // Check if there is nothing more to do, and if so, quit
+// Idle态 + 是时钟中断 + 没有其他中断 => 系统将退出
     if ((status == IdleMode) && (toOccur->type == TimerInt) 
 				&& pending->IsEmpty()) {
 	 pending->SortedInsert(toOccur, when);
@@ -324,11 +332,13 @@ Interrupt::CheckIfDue(bool advanceClock)
     if (machine != NULL)
     	machine->DelayedLoad(0, 0);
 #endif
-    inHandler = TRUE;
+    inHandler = TRUE;               // 说明正在进行中断处理程序
     status = SystemMode;			// whatever we were doing,
 						// we are now going to be
 						// running in the kernel
-    (*(toOccur->handler))(toOccur->arg);	// call the interrupt handler
+    printf("Handling....Next interrupt time: %d   Now: %d\n", when, stats->totalTicks);
+    (*(toOccur->handler))(toOccur->arg);	// call the interrupt handler 进行中断处理程序的处理
+                                            // 就是这里，调用了TimerInterruptHandler，促成了定时器的定时作用
     status = old;				// restore the machine status
     inHandler = FALSE;
     delete toOccur;

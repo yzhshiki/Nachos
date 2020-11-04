@@ -56,12 +56,34 @@ extern void Cleanup();
 //
 //	"dummy" is because every interrupt handler takes one argument,
 //		whether it needs it or not.
+// 检查当前是否还有进程等待,有则设置yield flag
 //----------------------------------------------------------------------
 static void
 TimerInterruptHandler(int dummy)
 {
     if (interrupt->getStatus() != IdleMode)
 	interrupt->YieldOnReturn();
+}
+
+//----------------------------------------------------------------------
+// 模仿中断处理函数，增加时间片调度，在这里增加检测进程时间片是否结束，结束才设置yield
+//----------------------------------------------------------------------
+static void
+RRHandler(int dummy)
+{
+    if(scheduler->checkTicks(currentThread) >= TimerTicks){
+        if(interrupt->getStatus() != IdleMode){
+            printf("CurrentThread used up TimerTicks\n");
+            interrupt->YieldOnReturn();
+            scheduler->resetTicks(currentThread);
+        }
+        else{
+            printf("readylist is Empty\n");
+        }
+    }
+    else{
+        printf("\n");
+    }
 }
 
 //----------------------------------------------------------------------
@@ -80,6 +102,7 @@ Initialize(int argc, char **argv)
     int argCount;
     char* debugArgs = "";
     bool randomYield = FALSE;
+    bool roundRobin = FALSE;
 
 #ifdef USER_PROGRAM
     bool debugUserProg = FALSE;	// single step user program
@@ -107,7 +130,12 @@ Initialize(int argc, char **argv)
 						// number generator
 	    randomYield = TRUE;
 	    argCount = 2;
-	}
+	} else if(!strcmp(*argv, "-rr")) {  //检测到-rr，说明启用时间片轮转调度
+        ASSERT(argc > 1);
+        roundRobin = TRUE;
+        argCount = 2;
+    }
+    
 #ifdef USER_PROGRAM
 	if (!strcmp(*argv, "-s"))
 	    debugUserProg = TRUE;
@@ -135,6 +163,9 @@ Initialize(int argc, char **argv)
     scheduler = new Scheduler();		// initialize the ready queue
     if (randomYield)				// start the timer (if needed)，即有rs命令
 	timer = new Timer(TimerInterruptHandler, 0, randomYield);
+
+    if(roundRobin)                  //开始RR时间计数器
+    timer = new Timer(RRHandler, 0, FALSE); 
 
     threadToBeDestroyed = NULL;
 

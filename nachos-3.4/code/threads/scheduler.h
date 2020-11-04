@@ -17,6 +17,12 @@
 #include <vector>
 #include <queue>
 
+// 选择调度算法
+enum ThreadSchedulingMethod{
+    FIFO,
+    PRIORIY
+};
+
 // The following class defines the scheduler/dispatcher abstraction -- 
 // the data structures and operations needed to keep track of which 
 // thread is running, and which threads are ready but not running.
@@ -40,11 +46,20 @@ class Scheduler {
   private:
     std::vector<Thread *> threadPool;   //线程池
     std::queue<int> tids;   //可用的tid队列
+    int tid_Ticks[MAX_THREAD_NUMBER]; //一个tid对应一个ticks计数
+    ThreadSchedulingMethod scheduleMethod;
   
   public:
     int acquireTid(Thread *t);  //用于给线程分配tid
     void releaseTid(Thread *t); //给线程释放tid
     void TS();  //打印所有进程信息
+    ThreadSchedulingMethod getScheduleMethod(){ return scheduleMethod; }
+    void preemptive_sched(Thread *t);
+    void initTicks(Thread *t){ tid_Ticks[t->getTid()] = 0; }
+    int checkTicks(Thread *t){ return tid_Ticks[t->getTid()]; }
+    void addTicks(Thread *t, int ticks){ tid_Ticks[t->getTid()] += ticks; } //onetick时调用
+    void resetTicks(Thread *t){ tid_Ticks[t->getTid()] = 0; }
+
 };
 
 #endif // SCHEDULER_H

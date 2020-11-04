@@ -24,6 +24,7 @@
 #include "system.h"
 
 // dummy function because C++ does not allow pointers to member functions
+// 向中断列表插入下一个时钟中断
 static void TimerHandler(int arg)
 { Timer *p = (Timer *)arg; p->TimerExpired(); }
 
@@ -62,6 +63,7 @@ void
 Timer::TimerExpired() 
 {
     // schedule the next timer device interrupt
+    // 这是一种循环调用，为了中断后能插入下一个中断
     interrupt->Schedule(TimerHandler, (int) this, TimeOfNextInterrupt(), 
 		TimerInt);
 

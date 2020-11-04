@@ -93,7 +93,7 @@ class Interrupt {
     void Halt(); 			// quit and print out stats
     
     void YieldOnReturn();		// cause a context switch on return 
-					// from an interrupt handler
+					// from an interrupt handler 设置中断结束后要进程切换的标志
 
     MachineStatus getStatus() { return status; } // idle, kernel, user
     void setStatus(MachineStatus st) { status = st; }

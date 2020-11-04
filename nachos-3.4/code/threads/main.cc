@@ -87,7 +87,7 @@ main(int argc, char **argv)
 
     DEBUG('t', "Entering main");
     (void) Initialize(argc, argv);
-	PrintHello();
+	// PrintHello();
     
 #ifdef THREADS	
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
@@ -104,6 +104,7 @@ main(int argc, char **argv)
     }
 
     ThreadTest();
+	// printf("thread main finished threadtest\n");
 #endif
 
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
