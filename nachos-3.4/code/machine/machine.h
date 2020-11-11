@@ -52,6 +52,12 @@ enum ExceptionType { NoException,           // Everything ok!
 		     NumExceptionTypes
 };
 
+enum TlbReplaceAlgo{
+	TLBFIFO,
+	LRU,
+	CLOCK
+};
+
 // User program CPU state.  The full set of MIPS registers, plus a few
 // more because we need to be able to start/stop a user program between
 // any two instructions (thus we need to keep track of things like load
@@ -187,6 +193,19 @@ class Machine {
 				// simulated instruction
     int runUntilTime;		// drop back into the debugger when simulated
 				// time reaches this value
+
+  	public:
+		void tlbReplace(int BadVAddr);
+		void tlbReplaceTLBFIFO(int BadVAddr);
+		void tlbReplaceLRU(int BadVAddr);
+		void tlbReplaceCLOCK(int BadVAddr);
+		void Addtlbtimes(){ tlbtimes++; }
+		void Addtlbhits(){ tlbhits++; }
+
+	private:
+		TlbReplaceAlgo tlbAlgo;
+		int tlbtimes;
+		int tlbhits;
 };
 
 extern void ExceptionHandler(ExceptionType which);

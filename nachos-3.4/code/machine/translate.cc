@@ -37,7 +37,7 @@
 // Routines for converting Words and Short Words to and from the
 // simulated machine's format of little endian.  These end up
 // being NOPs when the host machine is also little endian (DEC and Intel).
-
+// 转换大小端
 unsigned int
 WordToHost(unsigned int word) {
 #ifdef HOST_IS_BIG_ENDIAN
@@ -193,15 +193,15 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 
     DEBUG('a', "\tTranslate 0x%x, %s: ", virtAddr, writing ? "write" : "read");
 
-// check for alignment errors
+// check for alignment errors 地址对齐，size是读/写几个字节
     if (((size == 4) && (virtAddr & 0x3)) || ((size == 2) && (virtAddr & 0x1))){
 	DEBUG('a', "alignment problem at %d, size %d!\n", virtAddr, size);
 	return AddressErrorException;
     }
     
     // we must have either a TLB or a page table, but not both!
-    ASSERT(tlb == NULL || pageTable == NULL);	
-    ASSERT(tlb != NULL || pageTable != NULL);	
+    // ASSERT(tlb == NULL || pageTable == NULL);	
+    // ASSERT(tlb != NULL || pageTable != NULL);	
 
 // calculate the virtual page number, and offset within the page,
 // from the virtual address
@@ -218,12 +218,16 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 			virtAddr, pageTableSize);
 	    return PageFaultException;
 	}
-	entry = &pageTable[vpn];
+		entry = &pageTable[vpn];
     } else {
+		machine->Addtlbtimes();
         for (entry = NULL, i = 0; i < TLBSize; i++)
     	    if (tlb[i].valid && (tlb[i].virtualPage == vpn)) {
-		entry = &tlb[i];			// FOUND!
-		break;
+				entry = &tlb[i];			// FOUND!
+				if(tlb[i].lastUsedTime > 0)
+					tlb[i].lastUsedTime--;
+				machine->Addtlbhits();
+			break;
 	    }
 	if (entry == NULL) {				// not found
     	    DEBUG('a', "*** no valid TLB entry found for this virtual page!\n");
@@ -247,7 +251,7 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
     }
     entry->use = TRUE;		// set the use, dirty bits
     if (writing)
-	entry->dirty = TRUE;
+		entry->dirty = TRUE;	//方便写回
     *physAddr = pageFrame * PageSize + offset;
     ASSERT((*physAddr >= 0) && ((*physAddr + size) <= MemorySize));
     DEBUG('a', "phys addr = 0x%x\n", *physAddr);

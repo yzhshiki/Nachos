@@ -38,9 +38,9 @@ Machine::Run()
     interrupt->setStatus(UserMode);
     for (;;) {
         OneInstruction(instr);
-	interrupt->OneTick();
-	if (singleStep && (runUntilTime <= stats->totalTicks))
-	  Debugger();
+		interrupt->OneTick();
+		if (singleStep && (runUntilTime <= stats->totalTicks))
+		Debugger();
     }
 }
 
@@ -557,7 +557,7 @@ Machine::OneInstruction(Instruction *instr)
     // Do any delayed load operation
     DelayedLoad(nextLoadReg, nextLoadValue);
     
-    // Advance program counters.
+    // Advance program counters.	更新pc寄存器
     registers[PrevPCReg] = registers[PCReg];	// for debugging, in case we
 						// are jumping into lala-land
     registers[PCReg] = registers[NextPCReg];

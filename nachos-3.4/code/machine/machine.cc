@@ -63,9 +63,15 @@ Machine::Machine(bool debug)
       	mainMemory[i] = 0;
 #ifdef USE_TLB
     tlb = new TranslationEntry[TLBSize];
-    for (i = 0; i < TLBSize; i++)
-	tlb[i].valid = FALSE;
+    for (i = 0; i < TLBSize; i++){
+        tlb[i].valid = FALSE;
+        tlb[i].lastUsedTime = 0;
+    }
+	
     pageTable = NULL;
+    tlbAlgo = LRU;
+    tlbtimes = 0;
+    tlbhits = 0;
 #else	// use linear page table
     tlb = NULL;
     pageTable = NULL;
@@ -84,6 +90,7 @@ Machine::~Machine()
 {
     delete [] mainMemory;
     if (tlb != NULL)
+        printf("tlbtimes: %d\ttlbhits: %d\taccuracy: %lf\n", tlbtimes, tlbhits, double(tlbhits)/double(tlbtimes));
         delete [] tlb;
 }
 
@@ -95,6 +102,7 @@ Machine::~Machine()
 //
 //	"which" -- the cause of the kernel trap
 //	"badVaddr" -- the virtual address causing the trap, if appropriate
+// 抛出异常，在oneinstruction里常用
 //----------------------------------------------------------------------
 
 void
@@ -212,3 +220,67 @@ void Machine::WriteRegister(int num, int value)
 	registers[num] = value;
     }
 
+void Machine::tlbReplace(int BadVAddr){
+    switch (tlbAlgo)
+    {
+    case TLBFIFO:
+        tlbReplaceTLBFIFO(BadVAddr);
+        break;
+    case LRU:
+        tlbReplaceLRU(BadVAddr);
+        break;
+    default:
+        break;
+    }
+}
+
+void Machine::tlbReplaceTLBFIFO(int BadVAddr){
+    unsigned int vpn = BadVAddr / PageSize;
+    int position = -1;
+
+    for(int i = 0; i < TLBSize; i ++){
+        if(tlb[i].valid == false){
+            position = i;
+            break;
+        }
+    }
+    if(position == -1){
+        for(int i = 0; i < TLBSize - 1; i ++)
+            tlb[i] = tlb[i + 1];
+        position = TLBSize - 1;    
+    }
+    tlb[position].virtualPage = pageTable[vpn].virtualPage;
+    tlb[position].physicalPage = pageTable[vpn].physicalPage;
+    tlb[position].valid = true;
+    tlb[position].use = false;
+    tlb[position].dirty = false;
+}
+
+void Machine::tlbReplaceLRU(int BadVAddr){
+    unsigned int vpn = BadVAddr / PageSize;
+    int position = -1;
+
+    for(int i = 0; i < TLBSize; i ++){
+        if(tlb[i].valid == false){
+            position = i;
+            break;
+        }
+    }
+
+    if(position == -1){
+        int maxLUT = 0;
+        for(int i = 0; i < TLBSize; i ++){
+            if(tlb[i].lastUsedTime >= maxLUT){      //这里要是大于等于，不能是大于
+                position = i;
+                maxLUT = tlb[i].lastUsedTime;
+            }
+            tlb[i].lastUsedTime++;
+        }
+    }
+    tlb[position].virtualPage = pageTable[vpn].virtualPage;
+    tlb[position].physicalPage = pageTable[vpn].physicalPage;
+    tlb[position].valid = true;
+    tlb[position].use = false;
+    tlb[position].dirty = false;
+    tlb[position].lastUsedTime = 0;
+}

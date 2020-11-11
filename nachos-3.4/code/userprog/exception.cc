@@ -24,7 +24,7 @@
 #include "copyright.h"
 #include "system.h"
 #include "syscall.h"
-
+#include "machine.h"
 //----------------------------------------------------------------------
 // ExceptionHandler
 // 	Entry point into the Nachos kernel.  Called when a user program
@@ -52,11 +52,19 @@ void
 ExceptionHandler(ExceptionType which)
 {
     int type = machine->ReadRegister(2);
-
+    //如果是异常是系统调用类型 且是halt调用
     if ((which == SyscallException) && (type == SC_Halt)) {
 	DEBUG('a', "Shutdown, initiated by user program.\n");
    	interrupt->Halt();
-    } else {
+    }
+    else if(which == PageFaultException) {
+        int BadVAddr = machine->ReadRegister(BadVAddrReg);
+        if(machine->tlb != NULL){
+            DEBUG('a', "=> TLB miss (no TLB entry)\n");
+            machine->tlbReplace(BadVAddr);
+        }
+    }
+    else {
 	printf("Unexpected user mode exception %d %d\n", which, type);
 	ASSERT(FALSE);
     }
