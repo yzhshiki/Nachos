@@ -61,7 +61,7 @@ extern int testnum;		//记录测试的线程数
 
 extern void ThreadTest(void), Copy(char *unixFile, char *nachosFile);
 extern void Print(char *file), PerformanceTest(void);
-extern void StartProcess(char *file), ConsoleTest(char *in, char *out);
+extern void StartProcess(char *file),  StartMultProcess(char *file),ConsoleTest(char *in, char *out);
 extern void MailTest(int networkID);
 extern void PrintHello();
 
@@ -114,7 +114,7 @@ main(int argc, char **argv)
 #ifdef USER_PROGRAM
         if (!strcmp(*argv, "-x")) {        	// run a user program
 	    ASSERT(argc > 1);
-            StartProcess(*(argv + 1));
+            StartMultProcess(*(argv + 1));
             argCount = 2;
         } else if (!strcmp(*argv, "-c")) {      // test the console
 	    if (argc == 1)

@@ -44,6 +44,58 @@ StartProcess(char *filename)
 					// by doing the syscall "exit"
 }
 
+void MultUserprogFunc(int which){
+    char *filename = "../test/fibonacci";
+    currentThread->filename = filename;
+    OpenFile *executable = fileSystem->Open(filename);
+    AddrSpace *space;
+
+    if (executable == NULL) {
+	printf("Unable to open file %s\n", filename);
+	return;
+    }
+    space = new AddrSpace(executable);    
+    currentThread->space = space;
+
+    delete executable;			// close file
+
+    currentThread->space->InitRegisters();		// set the initial register values
+    currentThread->space->RestoreState();		// load page table register
+    machine->Run();			// jump to the user progam
+    ASSERT(FALSE);
+
+}
+
+void
+StartMultProcess(char *filename)
+{
+    currentThread->filename = filename;
+    OpenFile *executable = fileSystem->Open(filename);
+    AddrSpace *space;
+
+    if (executable == NULL) {
+	printf("Unable to open file %s\n", filename);
+	return;
+    }
+    space = new AddrSpace(executable);    
+    currentThread->space = space;
+
+    delete executable;			// close file
+
+    space->InitRegisters();		// set the initial register values
+    space->RestoreState();		// load page table register
+
+    Thread *thread2 = new Thread("Thread2");
+    thread2->Fork(MultUserprogFunc, 2);
+    
+    // currentThread->Yield();
+    machine->Run();			// jump to the user progam
+    ASSERT(FALSE);			// machine->Run never returns;
+					// the address space exits
+					// by doing the syscall "exit"
+}
+
+
 // Data structures needed for the console test.  Threads making
 // I/O requests wait on a Semaphore to delay until the I/O completes.
 

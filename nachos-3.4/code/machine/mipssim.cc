@@ -36,7 +36,10 @@ Machine::Run()
         printf("Starting thread \"%s\" at time %d\n",
 	       currentThread->getName(), stats->totalTicks);
     interrupt->setStatus(UserMode);
-    for (;;) {
+    for (int i = 0;;i++) {
+		if(i % 10 == 0)
+			// currentThread->Yield();
+			printf("Running Instruction %d\n", i);
         OneInstruction(instr);
 		interrupt->OneTick();
 		if (singleStep && (runUntilTime <= stats->totalTicks))
@@ -557,7 +560,7 @@ Machine::OneInstruction(Instruction *instr)
     // Do any delayed load operation
     DelayedLoad(nextLoadReg, nextLoadValue);
     
-    // Advance program counters.	更新pc寄存器
+    // Advance program counters.
     registers[PrevPCReg] = registers[PCReg];	// for debugging, in case we
 						// are jumping into lala-land
     registers[PCReg] = registers[NextPCReg];

@@ -10,7 +10,7 @@
 
 | Exercise1 | Exercise2 | Exercise3 | Exercise4 | Exercise5 | Exercise6 |      |      |
 | :-------: | :-------: | :-------: | :-------: | :-------: | :-------: | ---- | ---- |
-|     N     |     N     |     N     |     N     |     N     |     N     |      |      |
+|     Y     |     Y     |     Y     |     N     |     N     |     N     |      |      |
 
 
 
@@ -299,7 +299,7 @@ Machine::Machine(bool debug)
 }
 ```
 
-每次访问TLB时给取的TLB项的`lastUsedTime`减一（若为0则不变）
+每次访问TLB时（即在地址翻译过程中）给取的TLB项的`lastUsedTime`减一（若为0则不变）
 
 ```c++
 /* Machine::translate() */
@@ -362,7 +362,87 @@ void Machine::tlbReplaceTLBFIFO(int BadVAddr){
 
 > 设计并实现一个全局性的数据结构（如空闲链表、位图等）来进行内存的分配和回收，并记录当前内存的使用状态。
 
+machine.h中声明bitmap,定义allocMem、freeMem为用户程序分配和清除物理内存
 
+```c++
+/*  machine.h  */
+class Machine{
+	public:
+  	......
+	  int tlbSize;
+		int allocMem(){ return mybitmap->Find(); }
+		void freeMem();
+
+	private:
+		BitMap *mybitmap;
+}
+```
+
+```c++
+/*  machine.cc  */
+Machine::Machine(bool debug)
+{
+  ......
+	mybitmap = new BitMap(NumPhysPages);
+	......
+}
+
+void Machine::freeMem(){
+  for(int i = 0; i < NumPhysPages; i++){
+    if(pageTable[i].valid && mybitmap->Test(i))		//通过页表遍历知道哪些物理页存储的是当前用户程序的数据
+      mybitmap->Clear(i);			//然后将对应位图的位置0
+  }
+}
+```
+
+给用户线程分配空间时，初始化页表时利用位图分配物理地址，并在装载程序与数据时注意读入的地址
+
+
+
+实现Exit系统调用
+
+```c++
+if(which == SyscallException && type == SC_Exit){
+  int nextPC = machine->ReadRegister(NextPCReg);		//在当前用户程序退出后让pc指向nextpc，不然会卡住
+  machine->freeMem();
+  machine->WriteRegister(PCReg, nextPC);
+  if(currentThread->space!=NULL){
+    delete currentThread->space;
+    currentThread->Finish();
+  }
+}
+```
+
+修改`AddrSpace::SaveState() `，用户线程让出cpu时需要使TLB各位无效！
+
+```c++
+void AddrSpace::SaveState() 
+{
+    for(int i = 0; i < machine->tlbSize; i++){
+        machine->tlb[i].valid = false;
+    }
+}
+```
+
+
+
+### Exercise 5	多线程支持
+
+> 目前Nachos系统的内存中同时只能存在一个线程，我们希望打破这种限制，使得Nachos系统支持多个线程同时存在于内存中。
+
+装载内存时如果3个不等的程序可能会覆盖,所以不应该一次性装载；
+
+### Exercise 6	缺页中断处理
+
+> 基于TLB机制的异常处理和页面替换算法的实践，实现缺页中断处理（注意！TLB机制的异常处理是将内存中已有的页面调入TLB，而此处的缺页中断处理则是从磁盘中调入新的页面到内存）、页面替换算法等。
+
+从磁盘中掉入即readAt，每次缺页readAt一页，虚拟地址与文件中的虚拟地址是一一对应的，详看readAt、noff格式
+
+### Exercise 7	Lazy-loading
+
+> 我们已经知道，Nachos系统为用户程序分配内存必须在用户程序载入内存时一次性完成，故此，系统能够运行的用户程序的大小被严格限制在4KB以下。请实现Lazy-loading的内存分配算法，使得当且仅当程序运行过程中缺页中断发生时，才会将所需的页面从磁盘调入内存。
+
+Addrspace中对页表的虚拟地址、物理地址项赋值需要修改，比如把物理地址都赋-1。
 
 ## 内容三 遇到的困难及解决方法
 

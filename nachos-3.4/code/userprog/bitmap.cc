@@ -97,6 +97,7 @@ BitMap::Find()
     for (int i = 0; i < numBits; i++)
 	if (!Test(i)) {
 	    Mark(i);
+        printf("Allocated %d\n", i);
 	    return i;
 	}
     return -1;

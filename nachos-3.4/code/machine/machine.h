@@ -25,6 +25,7 @@
 #include "utility.h"
 #include "translate.h"
 #include "disk.h"
+#include "bitmap.h"
 
 // Definitions related to the size, and format of user memory
 
@@ -195,17 +196,24 @@ class Machine {
 				// time reaches this value
 
   	public:
+	  	int tlbSize;
 		void tlbReplace(int BadVAddr);
 		void tlbReplaceTLBFIFO(int BadVAddr);
 		void tlbReplaceLRU(int BadVAddr);
 		void tlbReplaceCLOCK(int BadVAddr);
 		void Addtlbtimes(){ tlbtimes++; }
 		void Addtlbhits(){ tlbhits++; }
+		void tlbStatClear(){ tlbtimes = 0; tlbhits = 0; }
+		int getTlbTimes(){ return tlbtimes; }
+		int getTlbHits(){ return tlbhits; }
+		int allocMem(){ return mybitmap->Find(); }
+		void freeMem();
 
 	private:
 		TlbReplaceAlgo tlbAlgo;
 		int tlbtimes;
 		int tlbhits;
+		BitMap *mybitmap;
 };
 
 extern void ExceptionHandler(ExceptionType which);

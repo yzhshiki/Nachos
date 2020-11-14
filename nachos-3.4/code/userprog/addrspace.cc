@@ -89,32 +89,39 @@ AddrSpace::AddrSpace(OpenFile *executable)
     pageTable = new TranslationEntry[numPages];
     for (i = 0; i < numPages; i++) {
 	pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
-	pageTable[i].physicalPage = i;
-	pageTable[i].valid = TRUE;
+	pageTable[i].physicalPage = machine->allocMem();
+	pageTable[i].valid = FALSE;
 	pageTable[i].use = FALSE;
 	pageTable[i].dirty = FALSE;
 	pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
 					// a separate page, we could set its 
 					// pages to be read-only
+    pageTable[i].BelongToThread = currentThread;
     }
     
+// 不清零主存    
 // zero out the entire address space, to zero the unitialized data segment 
 // and the stack segment
-    bzero(machine->mainMemory, size);
+    // bzero(machine->mainMemory, size);
 
 // then, copy in the code and data segments into memory
-    if (noffH.code.size > 0) {
-        DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
-			noffH.code.virtualAddr, noffH.code.size);
-        executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr]),
-			noffH.code.size, noffH.code.inFileAddr);
-    }
-    if (noffH.initData.size > 0) {
-        DEBUG('a', "Initializing data segment, at 0x%x, size %d\n", 
-			noffH.initData.virtualAddr, noffH.initData.size);
-        executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr]),
-			noffH.initData.size, noffH.initData.inFileAddr);
-    }
+    // if (noffH.code.size > 0) {
+    //     DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
+	// 		noffH.code.virtualAddr, noffH.code.size);
+    //     printf("Reading code position: %d\n", noffH.code.inFileAddr);
+    //     executable->ReadAt(&(machine->mainMemory[pageTable[noffH.code.virtualAddr].physicalPage * PageSize]),
+	// 		noffH.code.size, noffH.code.inFileAddr);
+    //     printf("After Reading code position: %d\n", noffH.code.inFileAddr);
+    //     // executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr]),
+	// 	// 	noffH.code.size, noffH.code.inFileAddr);
+    // }
+    // if (noffH.initData.size > 0) {
+    //     DEBUG('a', "Initializing data segment, at 0x%x, size %d\n", 
+	// 		noffH.initData.virtualAddr, noffH.initData.size);
+    //     printf("Reading initData position: %d\n", noffH.initData.inFileAddr);
+    //     executable->ReadAt(&(machine->mainMemory[pageTable[noffH.initData.virtualAddr].physicalPage * PageSize]),
+	// 		noffH.initData.size, noffH.initData.inFileAddr);
+    // }
 
 }
 
@@ -166,10 +173,15 @@ AddrSpace::InitRegisters()
 //	to this address space, that needs saving.
 //
 //	For now, nothing!
+//  用户线程让出cpu时需要使TLB各位无效
 //----------------------------------------------------------------------
 
 void AddrSpace::SaveState() 
-{}
+{
+    for(int i = 0; i < machine->tlbSize; i++){
+        machine->tlb[i].valid = false;
+    }
+}
 
 //----------------------------------------------------------------------
 // AddrSpace::RestoreState
@@ -183,4 +195,6 @@ void AddrSpace::RestoreState()
 {
     machine->pageTable = pageTable;
     machine->pageTableSize = numPages;
+    // for(int i = 0; i < numPages; i++)
+    //     machine->MemToThread[i] = currentThread;
 }

@@ -61,7 +61,9 @@ Machine::Machine(bool debug)
     mainMemory = new char[MemorySize];
     for (i = 0; i < MemorySize; i++)
       	mainMemory[i] = 0;
+    mybitmap = new BitMap(NumPhysPages);
 #ifdef USE_TLB
+    tlbSize = TLBSize;
     tlb = new TranslationEntry[TLBSize];
     for (i = 0; i < TLBSize; i++){
         tlb[i].valid = FALSE;
@@ -92,6 +94,7 @@ Machine::~Machine()
     if (tlb != NULL)
         printf("tlbtimes: %d\ttlbhits: %d\taccuracy: %lf\n", tlbtimes, tlbhits, double(tlbhits)/double(tlbtimes));
         delete [] tlb;
+    delete mybitmap;
 }
 
 //----------------------------------------------------------------------
@@ -283,4 +286,11 @@ void Machine::tlbReplaceLRU(int BadVAddr){
     tlb[position].use = false;
     tlb[position].dirty = false;
     tlb[position].lastUsedTime = 0;
+}
+
+void Machine::freeMem(){
+    for(int i = 0; i < NumPhysPages; i++){
+        if(pageTable[i].valid && mybitmap->Test(i))
+            mybitmap->Clear(i);
+    }
 }
