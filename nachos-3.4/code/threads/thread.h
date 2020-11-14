@@ -135,6 +135,8 @@ class Thread {
 		void Addtlbhits(){ tlbhits++; }
 		int getTlbTimes(){ return tlbtimes; }
 		int getTlbHits(){ return tlbhits; }
+    int UserProgPosInDisk;
+    int *ppnToDiskPos;
 #endif
 
 //把自己添加的变量、函数都写在最后方便使用

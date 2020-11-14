@@ -189,6 +189,8 @@ class Machine {
 
     TranslationEntry *pageTable;
     unsigned int pageTableSize;
+	char *disk;
+	
 
   private:
     bool singleStep;		// drop back into the debugger after each
@@ -209,7 +211,8 @@ class Machine {
 	private:
 		TlbReplaceAlgo tlbAlgo;
 		BitMap *mybitmap;
-		// Thread *MemToThread[NumPhysPages];
+		BitMap *DiskBitMap;
+		Thread *MemToThread[NumPhysPages];	//指明各个页属于哪个线程
 };
 
 extern void ExceptionHandler(ExceptionType which);

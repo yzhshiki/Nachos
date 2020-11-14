@@ -62,8 +62,12 @@ Machine::Machine(bool debug)
     for (i = 0; i < MemorySize; i++)
       	mainMemory[i] = 0;
     mybitmap = new BitMap(NumPhysPages);
-    // for(int i = 0; i < NumPhysPages; i++)
-    //     MemToThread[i] = NULL;
+    disk = new char[MemorySize * 10];
+    for(int i = 0; i < MemorySize * 10; i++)
+        disk[i] = 0;
+    DiskBitMap = new BitMap(NumPhysPages * 10);
+     for (i = 0; i < MemorySize; i++)
+      	MemToThread[i] = NULL;
 #ifdef USE_TLB
     tlbSize = TLBSize;
     tlb = new TranslationEntry[TLBSize];

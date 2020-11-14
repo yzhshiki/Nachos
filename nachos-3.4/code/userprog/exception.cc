@@ -80,16 +80,37 @@ ExceptionHandler(ExceptionType which)
         }
     }
     else if(which == PageFaultException){
-        //求出缺页的虚拟页号,其对应物理页号就取初始化时分配的
+        //求出缺页的虚拟页号
         int BadVAddr = machine->ReadRegister(BadVAddrReg);
         unsigned int vpn = BadVAddr / PageSize;
         int PhysPage = machine->pageTable[vpn].physicalPage;
-        // int ppn = machine->allocMem();
-        // if(ppn = -1){
-        //     ppn = machine->pageReplace();
-        // }
-        //修改页表，如果页表项dirty，则将对应物理页内容写到其对应原本线程的交换区
         
+        //获得一个物理页号
+        int ppn = machine->allocMem();
+        if(ppn = -1){
+            ppn = machine->pageReplace();
+        }
+        //修改页表,将对应物理页内容写到其对应原本线程的交换区（虚拟磁盘）
+        machine->pageTable[vpn].physicalPage = ppn;
+        Thread *former = machine->MemToThread[ppn];
+        if(former != NULL){
+            memcpy(machine->disk[former->UserProgPosInDisk + ppn * PageSize], machine->mainMemory + ppn * PageSize, PageSize);
+        }
+        //将文件对应页读入物理内存
+        //如果虚拟磁盘里有
+        if((machine->disk[former->UserProgPosInDisk + ppn * PageSize]) != 0){
+            memcpy(machine->mainMemory + ppn * PageSize, machine->disk[former->UserProgPosInDisk + ppn * PageSize], PageSize);
+            printf("Thread: %s\tRead exspace to mainmemory\n", currentThread->getName());
+        }
+        else    //  虚拟磁盘里没有，则先读到虚拟磁盘，再读到内存
+        {
+            OpenFile *executable = fileSystem->Open(currentThread->filename);
+            executable->ReadAt(&(machine->disk[former->UserProgPosInDisk + ppn * PageSize]), PageSize, vpn * PageSize + sizeof(NoffHeader));
+            memcpy(machine->mainMemory + ppn * PageSize, machine->disk[former->UserProgPosInDisk + ppn * PageSize], PageSize);
+            printf("Thread: %s\tRead file to exspace to mainmemory\n", currentThread->getName());
+        }
+
+        /*下面是使用交换区但不实现页面替换算法、不支持单个程序大小超过的物理内存大小的版本
         if(machine->pageTable[vpn].dirty){
             memcpy(machine->pageTable[vpn].BelongToThread->ExSpace + PhysPage * PageSize, machine->mainMemory + PhysPage * PageSize, PageSize);
         }
@@ -106,7 +127,8 @@ ExceptionHandler(ExceptionType which)
             memcpy(machine->mainMemory + PhysPage * PageSize, currentThread->ExSpace + PhysPage * PageSize, PageSize);
             printf("Thread: %s\tRead file to exspace to mainmemory\n", currentThread->getName());
         }
-        machine->pageTable[vpn].BelongToThread = currentThread;
+        */
+        machine->MemToThread[ppn] = currentThread;
         machine->pageTable[vpn].dirty = false;
         machine->pageTable[vpn].valid = true;
     }
