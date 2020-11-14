@@ -40,6 +40,11 @@ void Thread::init(char* threadName)
 
 #ifdef USER_PROGRAM
     space = NULL;
+    tlbtimes = 0;
+    tlbhits = 0;
+    ExSpace = new char[MemorySize];
+    for(int i = 0; i < MemorySize; i ++)
+        ExSpace[i] = 0;
 #endif
 
     this->tid = scheduler->acquireTid(this);  //申请一个tid
@@ -77,7 +82,8 @@ Thread::Thread(char* threadName, int prio)
 Thread::~Thread()
 {
     DEBUG('t', "Deleting thread \"%s\"\n", name);
-
+    printf("Thread: %s\ttlbtimes: %d\ttlbhits: %d\taccuracy: %lf\n", 
+            this->name, this->tlbtimes, tlbhits, double(tlbhits)/double(this->tlbtimes));
     ASSERT(this != currentThread);
     if (stack != NULL)
 	DeallocBoundedArray((char *) stack, StackSize * sizeof(int));

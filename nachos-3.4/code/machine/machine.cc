@@ -62,6 +62,8 @@ Machine::Machine(bool debug)
     for (i = 0; i < MemorySize; i++)
       	mainMemory[i] = 0;
     mybitmap = new BitMap(NumPhysPages);
+    // for(int i = 0; i < NumPhysPages; i++)
+    //     MemToThread[i] = NULL;
 #ifdef USE_TLB
     tlbSize = TLBSize;
     tlb = new TranslationEntry[TLBSize];
@@ -72,8 +74,7 @@ Machine::Machine(bool debug)
 	
     pageTable = NULL;
     tlbAlgo = LRU;
-    tlbtimes = 0;
-    tlbhits = 0;
+    
 #else	// use linear page table
     tlb = NULL;
     pageTable = NULL;
@@ -91,8 +92,9 @@ Machine::Machine(bool debug)
 Machine::~Machine()
 {
     delete [] mainMemory;
+    printf("Thread: %s\ttlbtimes: %d\ttlbhits: %d\taccuracy: %lf\n", 
+            currentThread->getName(), currentThread->getTlbTimes(), currentThread->getTlbHits(), double(currentThread->getTlbHits())/double(currentThread->getTlbTimes()));
     if (tlb != NULL)
-        printf("tlbtimes: %d\ttlbhits: %d\taccuracy: %lf\n", tlbtimes, tlbhits, double(tlbhits)/double(tlbtimes));
         delete [] tlb;
     delete mybitmap;
 }
@@ -293,4 +295,9 @@ void Machine::freeMem(){
         if(pageTable[i].valid && mybitmap->Test(i))
             mybitmap->Clear(i);
     }
+}
+
+int Machine::pageReplace(){
+    srand((unsigned int)time(0));
+    return rand() % NumPhysPages;
 }

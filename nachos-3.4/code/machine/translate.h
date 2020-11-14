@@ -26,7 +26,7 @@
 // virtual page to one physical page.
 // In addition, there are some extra bits for access control (valid and 
 // read-only) and some bits for usage information (use and dirty).
-
+class Thread;
 class TranslationEntry {
   public:
     int virtualPage;  	// The page number in virtual memory.
@@ -41,6 +41,7 @@ class TranslationEntry {
     bool dirty;         // This bit is set by the hardware every time the
 			// page is modified.
     int lastUsedTime;   //越大说明越久没用了
+    Thread *BelongToThread;
 };
 
 #endif

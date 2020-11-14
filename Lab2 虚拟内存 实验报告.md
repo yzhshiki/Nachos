@@ -346,7 +346,7 @@ void Machine::tlbReplaceTLBFIFO(int BadVAddr){
 
 #### 测试
 
-给machine增加`tlbtimes` `tlbhits`变量，每次翻译地址时若使用TLB则前者加一，若命中则后者也加一。利用test/sort.c进行测试，因为还没实现Exit()系统调用，所以将sort.c最后调用Exit()改为调用Halt()。在machine的析构函数中输出TLB访问情况。
+给thread增加`tlbtimes` `tlbhits`变量，每次翻译地址时若使用TLB则前者加一，若命中则后者也加一。利用test/sort.c进行测试，因为还没实现Exit()系统调用，所以将sort.c最后调用Exit()改为调用Halt()。在machine的析构函数中输出TLB命中情况。
 
 - FIFO
 
@@ -395,34 +395,53 @@ void Machine::freeMem(){
 }
 ```
 
-给用户线程分配空间时，初始化页表时利用位图分配物理地址，并在装载程序与数据时注意读入的地址
-
-
-
-实现Exit系统调用
+按页装载机：给用户线程分配空间时，初始化页表时利用位图分配物理地址，并在装载程序与数据时注意读入的地址，一定要注意用物理地址乘页表大小！这样才是按页分配。
 
 ```c++
-if(which == SyscallException && type == SC_Exit){
-  int nextPC = machine->ReadRegister(NextPCReg);		//在当前用户程序退出后让pc指向nextpc，不然会卡住
-  machine->freeMem();
-  machine->WriteRegister(PCReg, nextPC);
-  if(currentThread->space!=NULL){
-    delete currentThread->space;
-    currentThread->Finish();
-  }
-}
-```
-
-修改`AddrSpace::SaveState() `，用户线程让出cpu时需要使TLB各位无效！
-
-```c++
-void AddrSpace::SaveState() 
+AddrSpace::AddrSpace(OpenFile *executable)
 {
-    for(int i = 0; i < machine->tlbSize; i++){
-        machine->tlb[i].valid = false;
+   	......
+    pageTable = new TranslationEntry[numPages];
+    for (i = 0; i < numPages; i++) {
+        pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
+        pageTable[i].physicalPage = machine->allocMem();		//利用位图分配物理地址
+        pageTable[i].valid = TRUE;
+        pageTable[i].use = FALSE;
+        pageTable[i].dirty = FALSE;
+        pageTable[i].readOnly = FALSE;  
     }
+		......
+    if (noffH.code.size > 0) {
+        executable->ReadAt(&(machine->mainMemory[pageTable[noffH.code.virtualAddr].physicalPage * PageSize]),
+			noffH.code.size, noffH.code.inFileAddr);		//将代码读到物理内存的某一物理页的开头，这里一定乘页表大小
+        // executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr]),
+		// 	noffH.code.size, noffH.code.inFileAddr);
+    }
+    if (noffH.initData.size > 0) {
+        executable->ReadAt(&(machine->mainMemory[pageTable[noffH.initData.virtualAddr].physicalPage * PageSize]),
+			noffH.initData.size, noffH.initData.inFileAddr);
+    }
+
 }
 ```
+
+测试，在bitmap找到空位时输出分配的物理页号（1位对应1页）
+
+```c++
+/* bitmap.cc */
+int BitMap::Find() 
+{
+    for (int i = 0; i < numBits; i++)
+	if (!Test(i)) {
+	    Mark(i);
+        printf("Allocated %d\n", i);
+	    return i;
+	}
+    return -1;
+}
+```
+
+![image-20201112204750694](/Users/yzh/Library/Application Support/typora-user-images/image-20201112204750694.png)
 
 
 
@@ -430,13 +449,158 @@ void AddrSpace::SaveState()
 
 > 目前Nachos系统的内存中同时只能存在一个线程，我们希望打破这种限制，使得Nachos系统支持多个线程同时存在于内存中。
 
-装载内存时如果3个不等的程序可能会覆盖,所以不应该一次性装载；
+实现Exit系统调用
+
+```c++
+if(which == SyscallException && type == SC_Exit){
+    printf("Exiting userprog of thread: %s\n", currentThread->getName());
+    machine->freeMem();			//将退出的用户程序占用的物理页在位图中置零
+    currentThread->Finish();		//线程结束
+    if(currentThread->space!=NULL){
+      	delete currentThread->space;
+    }
+}
+```
+
+修改`AddrSpace::SaveState() `，用户线程让出cpu时需要使TLB各位无效！如果不这样做，在用户程序切换时，新上cpu的用户程序将会使用切换前用户程序的物理页（存在TLB里），将会出错。
+
+```c++
+void AddrSpace::SaveState() 
+{
+    for(int i = 0; i < machine->tlbSize; i++){		
+        machine->tlb[i].valid = false;
+    }
+}
+```
+
+写测试，两个用户程序分别运行/test/fibonacci与/test/sort
+
+```c++
+/*  progtest.cc  */
+void MultUserprogFunc(int which){
+    char *filename = "../test/fibonacci";
+    OpenFile *executable = fileSystem->Open(filename);
+    AddrSpace *space;
+
+    if (executable == NULL) {
+	printf("Unable to open file %s\n", filename);
+	return;
+    }
+    space = new AddrSpace(executable);    
+    currentThread->space = space;
+
+    delete executable;			// close file
+
+    currentThread->space->InitRegisters();		// set the initial register values
+    currentThread->space->RestoreState();		// load page table register
+    machine->Run();			// jump to the user progam
+    ASSERT(FALSE);
+
+}
+
+void
+StartMultProcess(char *filename)
+{
+    OpenFile *executable = fileSystem->Open(filename);
+    AddrSpace *space;
+
+    if (executable == NULL) {
+	printf("Unable to open file %s\n", filename);
+	return;
+    }
+    space = new AddrSpace(executable);    
+    currentThread->space = space;
+
+    delete executable;			// close file
+
+    space->InitRegisters();		// set the initial register values
+    space->RestoreState();		// load page table register
+
+    Thread *thread2 = new Thread("Thread2");
+    thread2->Fork(MultUserprogFunc, 2);
+    
+    // currentThread->Yield();
+    machine->Run();			// jump to the user progam
+    ASSERT(FALSE);			// machine->Run never returns;
+					// the address space exits
+					// by doing the syscall "exit"
+}
+```
+
+在`machine::Run()`中设置每1000条指令切换用户程序时
+
+![image-20201112210055860](/Users/yzh/Library/Application Support/typora-user-images/image-20201112210055860.png)
+
+每10条指令切换用户程序：
+
+![image-20201112210138124](/Users/yzh/Library/Application Support/typora-user-images/image-20201112210138124.png)
+
+可以看到两个用户程序同时存在内存，也可看到切换频率对tlb命中率的影响。
+
+
 
 ### Exercise 6	缺页中断处理
 
 > 基于TLB机制的异常处理和页面替换算法的实践，实现缺页中断处理（注意！TLB机制的异常处理是将内存中已有的页面调入TLB，而此处的缺页中断处理则是从磁盘中调入新的页面到内存）、页面替换算法等。
 
 从磁盘中掉入即readAt，每次缺页readAt一页，虚拟地址与文件中的虚拟地址是一一对应的，详看readAt、noff格式
+
+将tlbmiss和缺页中断的中断区分开
+
+```c++
+enum ExceptionType { NoException,           // Everything ok!
+		     SyscallException,      // A program executed a system call.
+		     PageFaultException,    // No valid translation found
+		     ......
+			 	 TLBMissException		//新增
+};
+```
+
+在页表项中新建一个线程指针，指明页表项对应的物理内存的这一页属于哪一个线程
+
+```c++
+class TranslationEntry{
+  public:
+  ......
+  		Thread* BelongToThread;
+  ......
+}
+```
+
+给每个线程分配一个交换区，方便起见使其与物理内存一样大
+
+```c++
+void Thread::init(char* threadName)
+{
+		......
+		#ifdef USER_PROGRAM
+    ......
+    ExSpace = new char[MemorySize];
+    for(int i = 0; i < MemorySize; i ++)
+        ExSpace = 0;
+		#endif
+}
+```
+
+给TLB异常处理中增加缺页判断
+
+```c++
+if(which == TLBMissException) {
+  int BadVAddr = machine->ReadRegister(BadVAddrReg);
+  unsigned int vpn = BadVAddr / PageSize;
+  if(machine->tlb != NULL){
+  	DEBUG('a', "=> TLB miss (no TLB entry)\n");
+    if(machine->pageTable[vpn].valid == true)		//如果页表对应项valid，就从页表取到TLB
+      machine->tlbReplace(BadVAddr);																			
+    else{																			//否则，先抛出页表缺页异常
+        machine->tlbReplace(BadVAddr);
+        machine->RaiseException(PageFaultException, BadVAddr);
+    }
+  }
+}
+```
+
+
 
 ### Exercise 7	Lazy-loading
 
@@ -445,6 +609,20 @@ void AddrSpace::SaveState()
 Addrspace中对页表的虚拟地址、物理地址项赋值需要修改，比如把物理地址都赋-1。
 
 ## 内容三 遇到的困难及解决方法
+
+- translate.h中声明一个线程的指针时遇到头文件互相引用的问题，解决方法：[前置声明](https://www.zhihu.com/question/379789314)
+
+  ```c++
+  class Thread;
+  class TranslationEntry{
+    public:
+    ......
+    		Thread* BelongToThread;
+    ......
+  }
+  ```
+
+  
 
 ## 内容四 收获及感想
 

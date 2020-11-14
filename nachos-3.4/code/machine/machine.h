@@ -50,7 +50,8 @@ enum ExceptionType { NoException,           // Everything ok!
 		     OverflowException,     // Integer overflow in add or sub.
 		     IllegalInstrException, // Unimplemented or reserved instr.
 		     
-		     NumExceptionTypes
+		     NumExceptionTypes,
+			 TLBMissException
 };
 
 enum TlbReplaceAlgo{
@@ -110,7 +111,7 @@ class Instruction {
 //
 // The procedures in this class are defined in machine.cc, mipssim.cc, and
 // translate.cc.
-
+class Thread;
 class Machine {
   public:
     Machine(bool debug);	// Initialize the simulation of the hardware
@@ -201,19 +202,14 @@ class Machine {
 		void tlbReplaceTLBFIFO(int BadVAddr);
 		void tlbReplaceLRU(int BadVAddr);
 		void tlbReplaceCLOCK(int BadVAddr);
-		void Addtlbtimes(){ tlbtimes++; }
-		void Addtlbhits(){ tlbhits++; }
-		void tlbStatClear(){ tlbtimes = 0; tlbhits = 0; }
-		int getTlbTimes(){ return tlbtimes; }
-		int getTlbHits(){ return tlbhits; }
 		int allocMem(){ return mybitmap->Find(); }
 		void freeMem();
+		int pageReplace();
 
 	private:
 		TlbReplaceAlgo tlbAlgo;
-		int tlbtimes;
-		int tlbhits;
 		BitMap *mybitmap;
+		// Thread *MemToThread[NumPhysPages];
 };
 
 extern void ExceptionHandler(ExceptionType which);

@@ -37,9 +37,9 @@ Machine::Run()
 	       currentThread->getName(), stats->totalTicks);
     interrupt->setStatus(UserMode);
     for (int i = 0;;i++) {
-		if(i % 10 == 0)
-			// currentThread->Yield();
-			printf("Running Instruction %d\n", i);
+		if(i % 1000 == 0)
+			currentThread->Yield();
+			// printf("Running Instruction %d\n", i);
         OneInstruction(instr);
 		interrupt->OneTick();
 		if (singleStep && (runUntilTime <= stats->totalTicks))

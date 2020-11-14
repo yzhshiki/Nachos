@@ -92,8 +92,8 @@ Machine::ReadMem(int addr, int size, int *value)
     int physicalAddress;
     
     DEBUG('a', "Reading VA 0x%x, size %d\n", addr, size);
-    
     exception = Translate(addr, &physicalAddress, size, FALSE);
+		// printf("translated addr: %d\t paddr: %d\n", addr, physicalAddress);
     if (exception != NoException) {
 	machine->RaiseException(exception, addr);
 	return FALSE;
@@ -220,18 +220,18 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 	}
 		entry = &pageTable[vpn];
     } else {
-		machine->Addtlbtimes();
+		currentThread->Addtlbtimes();
         for (entry = NULL, i = 0; i < TLBSize; i++)
     	    if (tlb[i].valid && (tlb[i].virtualPage == vpn)) {
 				entry = &tlb[i];			// FOUND!
 				if(tlb[i].lastUsedTime > 0)
 					tlb[i].lastUsedTime--;
-				machine->Addtlbhits();
+				currentThread->Addtlbhits();
 			break;
 	    }
 	if (entry == NULL) {				// not found
     	    DEBUG('a', "*** no valid TLB entry found for this virtual page!\n");
-    	    return PageFaultException;		// really, this is a TLB fault,
+    	    return TLBMissException;		// really, this is a TLB fault,
 						// the page may be in memory,
 						// but not in the TLB
 	}

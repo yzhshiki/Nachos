@@ -122,12 +122,19 @@ class Thread {
 // while executing kernel code.
 
     int userRegisters[NumTotalRegs];	// user-level CPU register state
-
+  private:
+    int tlbtimes;
+		int tlbhits;
   public:
     void SaveUserState();		// save user-level register state
     void RestoreUserState();		// restore user-level register state
 
     AddrSpace *space;			// User code this thread is running.
+
+    void Addtlbtimes(){ tlbtimes++; }
+		void Addtlbhits(){ tlbhits++; }
+		int getTlbTimes(){ return tlbtimes; }
+		int getTlbHits(){ return tlbhits; }
 #endif
 
 //把自己添加的变量、函数都写在最后方便使用
@@ -146,6 +153,9 @@ public:
   int getThreadStatus(){ return status; }
   int getPriority(){ return priority; }
   void setPriority(int prio){ priority = prio; }
+
+  char *ExSpace;
+  char *filename;
 };
 
 // Magical machine-dependent routines, defined in switch.s
