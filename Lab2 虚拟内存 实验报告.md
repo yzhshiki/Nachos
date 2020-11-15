@@ -1,4 +1,4 @@
-### Lab2 虚拟内存 实验报告
+# Lab2 虚拟内存 实验报告
 
 ## 内容一：总体概述
 
@@ -8,9 +8,9 @@
 
 ### 任务完成列表
 
-| Exercise1 | Exercise2 | Exercise3 | Exercise4 | Exercise5 | Exercise6 |      |      |
-| :-------: | :-------: | :-------: | :-------: | :-------: | :-------: | ---- | ---- |
-|     Y     |     Y     |     Y     |     N     |     N     |     N     |      |      |
+| Exercise1 | Exercise2 | Exercise3 | Exercise4 | Exercise5 | Exercise6 | Exercise7 | Challenge2 |
+| :-------: | :-------: | :-------: | :-------: | :-------: | :-------: | :-------: | :--------: |
+|     Y     |     Y     |     Y     |     Y     |     Y     |     Y     |     Y     |     Y      |
 
 
 
@@ -543,7 +543,15 @@ StartMultProcess(char *filename)
 
 > 基于TLB机制的异常处理和页面替换算法的实践，实现缺页中断处理（注意！TLB机制的异常处理是将内存中已有的页面调入TLB，而此处的缺页中断处理则是从磁盘中调入新的页面到内存）、页面替换算法等。
 
-从磁盘中掉入即readAt，每次缺页readAt一页，虚拟地址与文件中的虚拟地址是一一对应的，详看readAt、noff格式
+每次缺页readAt一页，虚拟地址与文件中的虚拟地址是一一对应的，详看readAt、noff格式
+
+### Exercise 7	Lazy-loading
+
+> 我们已经知道，Nachos系统为用户程序分配内存必须在用户程序载入内存时一次性完成，故此，系统能够运行的用户程序的大小被严格限制在4KB以下。请实现Lazy-loading的内存分配算法，使得当且仅当程序运行过程中缺页中断发生时，才会将所需的页面从磁盘调入内存。
+
+### Challenge 2	倒排页表
+
+> 多级页表的缺陷在于页表的大小与虚拟地址空间的大小成正比，为了节省物理内存在页表存储上的消耗，请在Nachos系统中实现倒排页表。 
 
 将tlbmiss和缺页中断的中断区分开
 
@@ -554,32 +562,6 @@ enum ExceptionType { NoException,           // Everything ok!
 		     ......
 			 	 TLBMissException		//新增
 };
-```
-
-在页表项中新建一个线程指针，指明页表项对应的物理内存的这一页属于哪一个线程
-
-```c++
-class TranslationEntry{
-  public:
-  ......
-  		Thread* BelongToThread;
-  ......
-}
-```
-
-给每个线程分配一个交换区，方便起见使其与物理内存一样大
-
-```c++
-void Thread::init(char* threadName)
-{
-		......
-		#ifdef USER_PROGRAM
-    ......
-    ExSpace = new char[MemorySize];
-    for(int i = 0; i < MemorySize; i ++)
-        ExSpace = 0;
-		#endif
-}
 ```
 
 给TLB异常处理中增加缺页判断
@@ -593,20 +575,103 @@ if(which == TLBMissException) {
     if(machine->pageTable[vpn].valid == true)		//如果页表对应项valid，就从页表取到TLB
       machine->tlbReplace(BadVAddr);																			
     else{																			//否则，先抛出页表缺页异常
-        machine->tlbReplace(BadVAddr);
         machine->RaiseException(PageFaultException, BadVAddr);
+       	machine->tlbReplace(BadVAddr);
     }
   }
 }
 ```
 
+在Machine中增加内存位图、ppnToThread数组、ppnTovpn倒转页表、虚拟磁盘、磁盘位图、分配物理内存页、分配虚拟磁盘页、页面替换等函数
 
+```c++
+class Machine{
+  public:
+	  ......
+		int allocMem(){ return memBitMap->Find(); }	
+		void freeMem();
+		int pageReplace();		//随机返回一个页号
+		int allocDisk(){ return diskBitMap->Find(); }
 
-### Exercise 7	Lazy-loading
+		char *disk;
+		BitMap *memBitMap;
+		BitMap *diskBitMap;
+		Thread *ppnToThread[NumPhysPages];	//指明各个页属于哪个线程
+		int * ppnTovpn;		//与ppnToThread共同构成倒排页表
+}
+```
 
-> 我们已经知道，Nachos系统为用户程序分配内存必须在用户程序载入内存时一次性完成，故此，系统能够运行的用户程序的大小被严格限制在4KB以下。请实现Lazy-loading的内存分配算法，使得当且仅当程序运行过程中缺页中断发生时，才会将所需的页面从磁盘调入内存。
+在Thread中增加vpnTodpn数、filename文件名、给页表项置为invalid的函数
 
-Addrspace中对页表的虚拟地址、物理地址项赋值需要修改，比如把物理地址都赋-1。
+```c++
+class Thread{
+  #ifdef USER_PROGRAM
+		......
+  public:
+    ......
+    void setInvalid(int vpn){ this->space->setInvalid(vpn); }
+    int *vpnTodpn;
+    char *filename;
+#endif
+}
+```
+
+在exception.cc中增加缺页异常处理
+
+```c++
+/*  exception.cc  */
+
+if(which == PageFaultException){
+  //求出缺页的虚拟页号
+  int BadVAddr = machine->ReadRegister(BadVAddrReg);
+  unsigned int vpn = BadVAddr / PageSize;
+  
+  //获得一个物理页号，-1则需要执行页面替换
+  int ppn = machine->allocMem();
+  if(ppn == -1){
+    //得到被替换页面属于哪个线程、对应vpn、对应磁盘位置
+    ppn = machine->pageReplace();
+    Thread* FormThread = machine->ppnToThread[ppn];
+    int FormVpn = machine->ppnTovpn[ppn];   //不需要考虑FormVpn为-1，因为肯定已经建立映射
+    if(FormThread->vpnTodpn[FormVpn] == -1){	//如果磁盘中曾经没有这一页，则给这一页分配磁盘页
+      FormThread->vpnTodpn[FormVpn] = machine->allocDisk();
+    }
+    int FormDpn = FormThread->vpnTodpn[FormVpn];
+    //将物理页内容写回磁盘
+    memcpy(machine->disk + FormDpn * PageSize, machine->mainMemory + ppn * PageSize, PageSize);
+    FormThread->setInvalid(FormVpn);		//使原本这一页的线程对应页表项invalid
+    printf("Write Thread: %s\tvpn %d\tppn %d back to disk\n", FormThread->getName(), FormVpn, ppn);
+  }
+
+  //将文件对应页读入物理内存
+  
+  int dpn = currentThread->vpnTodpn[vpn];
+  if(dpn != -1){		//如果虚拟磁盘里有，则从虚拟磁盘读到内存
+    memcpy(machine->mainMemory + ppn * PageSize, machine->disk + dpn * PageSize, PageSize);
+    printf("Thread: %s\tRead Page %d form Disk to mainMemory\n", currentThread->getName(), ppn);
+  }
+  else    //  虚拟磁盘里没有，则从文件直接读到内存
+  {
+    OpenFile *executable = fileSystem->Open(currentThread->filename);
+    executable->ReadAt(&(machine->mainMemory[ppn * PageSize]), PageSize, vpn * PageSize + sizeof(NoffHeader));
+    printf("Thread: %s\tRead Page %d form FILE to mainMemory\n", currentThread->getName(), ppn);
+  }
+
+  //修改页表与倒排页表
+  machine->pageTable[vpn].valid = true;
+  machine->pageTable[vpn].physicalPage = ppn;
+  machine->ppnToThread[ppn] = currentThread;
+  machine->ppnTovpn[ppn] = vpn;
+}
+```
+
+下面是手写的流程
+
+![IMG_553636200F99-1](/Users/yzh/Downloads/IMG_553636200F99-1.jpeg)
+
+测试：首先在addrspace.cc中初始化页表时将各页设为invalid，并不分配物理页，也不读入文件
+
+![image-20201115232320699](/Users/yzh/Library/Application Support/typora-user-images/image-20201115232320699.png)
 
 ## 内容三 遇到的困难及解决方法
 
@@ -626,13 +691,14 @@ Addrspace中对页表的虚拟地址、物理地址项赋值需要修改，比�
 
   ![image-20201115110636576](/Users/yzh/Library/Application Support/typora-user-images/image-20201115110636576.png)
 
-- 
+- 莫名错误，最后是tlb中raise缺页放在了tlb替换之前，这里是正确顺序。
+
+  ![image-20201115172443742](/Users/yzh/Library/Application Support/typora-user-images/image-20201115172443742.png)
 
 ## 内容四 收获及感想
 
+​		熟悉了虚拟内存！和同学讨论流程并写了下来，非常有助于写代码。
+
 ## 内容五 对课程的意见或建议
 
-
-
-### 参考文献
-
+​		无。

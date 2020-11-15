@@ -74,8 +74,8 @@ ExceptionHandler(ExceptionType which)
             if(machine->pageTable[vpn].valid == true)
                 machine->tlbReplace(BadVAddr);
             else{
-                machine->tlbReplace(BadVAddr);
                 machine->RaiseException(PageFaultException, BadVAddr);
+                machine->tlbReplace(BadVAddr);
             }
         }
     }
@@ -84,10 +84,8 @@ ExceptionHandler(ExceptionType which)
         //求出缺页的虚拟页号
         int BadVAddr = machine->ReadRegister(BadVAddrReg);
         unsigned int vpn = BadVAddr / PageSize;
-        printf("PageFault handling, BadVAddr: %d\n", BadVAddr);
         //获得一个物理页号，-1则需要执行页面替换
         int ppn = machine->allocMem();
-        printf("ppn: %d\n", ppn);
         if(ppn == -1){
             //得到被替换页面属于哪个线程、对应vpn、对应磁盘位置
             ppn = machine->pageReplace();
@@ -106,7 +104,6 @@ ExceptionHandler(ExceptionType which)
         //将文件对应页读入物理内存
         //如果虚拟磁盘里有，则从虚拟磁盘读到内存
         int dpn = currentThread->vpnTodpn[vpn];
-        printf("dpn: %d\n", dpn);
         if(dpn != -1){
             memcpy(machine->mainMemory + ppn * PageSize, machine->disk + dpn * PageSize, PageSize);
             printf("Thread: %s\tRead Page %d form Disk to mainMemory\n", currentThread->getName(), ppn);
@@ -118,26 +115,7 @@ ExceptionHandler(ExceptionType which)
             printf("Thread: %s\tRead Page %d form FILE to mainMemory\n", currentThread->getName(), ppn);
         }
 
-        /*下面是使用交换区但不实现页面替换算法、不支持单个程序大小超过的物理内存大小的版本
-        if(machine->pageTable[vpn].dirty){
-            memcpy(machine->pageTable[vpn].BelongToThread->ExSpace + PhysPage * PageSize, machine->mainMemory + PhysPage * PageSize, PageSize);
-        }
-        //将文件对应页读入物理内存
-        printf("PyhsPage: %d\n", PhysPage);
-        if((currentThread->ExSpace[PhysPage * PageSize]) != 0){
-            memcpy(machine->mainMemory + PhysPage * PageSize, currentThread->ExSpace + PhysPage * PageSize, PageSize);
-            printf("Thread: %s\tRead exspace to mainmemory\n", currentThread->getName());
-        }
-        else
-        {
-            OpenFile *executable = fileSystem->Open(currentThread->filename);
-            executable->ReadAt(&(currentThread->ExSpace[PhysPage * PageSize]), PageSize, vpn * PageSize + sizeof(NoffHeader));
-            memcpy(machine->mainMemory + PhysPage * PageSize, currentThread->ExSpace + PhysPage * PageSize, PageSize);
-            printf("Thread: %s\tRead file to exspace to mainmemory\n", currentThread->getName());
-        }
-        */
         //修改页表与倒排页表
-        
         machine->pageTable[vpn].valid = true;
         machine->pageTable[vpn].physicalPage = ppn;
         machine->ppnToThread[ppn] = currentThread;
