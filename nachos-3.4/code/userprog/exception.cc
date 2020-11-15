@@ -80,34 +80,42 @@ ExceptionHandler(ExceptionType which)
         }
     }
     else if(which == PageFaultException){
+        
         //求出缺页的虚拟页号
         int BadVAddr = machine->ReadRegister(BadVAddrReg);
         unsigned int vpn = BadVAddr / PageSize;
-        int PhysPage = machine->pageTable[vpn].physicalPage;
-        
-        //获得一个物理页号
+        printf("PageFault handling, BadVAddr: %d\n", BadVAddr);
+        //获得一个物理页号，-1则需要执行页面替换
         int ppn = machine->allocMem();
-        if(ppn = -1){
+        printf("ppn: %d\n", ppn);
+        if(ppn == -1){
+            //得到被替换页面属于哪个线程、对应vpn、对应磁盘位置
             ppn = machine->pageReplace();
+            Thread* FormThread = machine->ppnToThread[ppn];
+            int FormVpn = machine->ppnTovpn[ppn];   //不需要考虑FormVpn为-1，因为肯定已经建立映射
+            if(FormThread->vpnTodpn[FormVpn] == -1){
+                FormThread->vpnTodpn[FormVpn] = machine->allocDisk();
+            }
+            int FormDpn = FormThread->vpnTodpn[FormVpn];
+            //将物理页内容写回磁盘
+            memcpy(machine->disk + FormDpn * PageSize, machine->mainMemory + ppn * PageSize, PageSize);
+            FormThread->setInvalid(FormVpn);
+            printf("Write Thread: %s\tvpn %d\tppn %d back to disk\n", FormThread->getName(), FormVpn, ppn);
         }
-        //修改页表,将对应物理页内容写到其对应原本线程的交换区（虚拟磁盘）
-        machine->pageTable[vpn].physicalPage = ppn;
-        Thread *former = machine->MemToThread[ppn];
-        if(former != NULL){
-            memcpy(machine->disk[former->UserProgPosInDisk + ppn * PageSize], machine->mainMemory + ppn * PageSize, PageSize);
-        }
+        
         //将文件对应页读入物理内存
-        //如果虚拟磁盘里有
-        if((machine->disk[former->UserProgPosInDisk + ppn * PageSize]) != 0){
-            memcpy(machine->mainMemory + ppn * PageSize, machine->disk[former->UserProgPosInDisk + ppn * PageSize], PageSize);
-            printf("Thread: %s\tRead exspace to mainmemory\n", currentThread->getName());
+        //如果虚拟磁盘里有，则从虚拟磁盘读到内存
+        int dpn = currentThread->vpnTodpn[vpn];
+        printf("dpn: %d\n", dpn);
+        if(dpn != -1){
+            memcpy(machine->mainMemory + ppn * PageSize, machine->disk + dpn * PageSize, PageSize);
+            printf("Thread: %s\tRead Page %d form Disk to mainMemory\n", currentThread->getName(), ppn);
         }
-        else    //  虚拟磁盘里没有，则先读到虚拟磁盘，再读到内存
+        else    //  虚拟磁盘里没有，则从文件读到内存
         {
             OpenFile *executable = fileSystem->Open(currentThread->filename);
-            executable->ReadAt(&(machine->disk[former->UserProgPosInDisk + ppn * PageSize]), PageSize, vpn * PageSize + sizeof(NoffHeader));
-            memcpy(machine->mainMemory + ppn * PageSize, machine->disk[former->UserProgPosInDisk + ppn * PageSize], PageSize);
-            printf("Thread: %s\tRead file to exspace to mainmemory\n", currentThread->getName());
+            executable->ReadAt(&(machine->mainMemory[ppn * PageSize]), PageSize, vpn * PageSize + sizeof(NoffHeader));
+            printf("Thread: %s\tRead Page %d form FILE to mainMemory\n", currentThread->getName(), ppn);
         }
 
         /*下面是使用交换区但不实现页面替换算法、不支持单个程序大小超过的物理内存大小的版本
@@ -128,9 +136,12 @@ ExceptionHandler(ExceptionType which)
             printf("Thread: %s\tRead file to exspace to mainmemory\n", currentThread->getName());
         }
         */
-        machine->MemToThread[ppn] = currentThread;
-        machine->pageTable[vpn].dirty = false;
+        //修改页表与倒排页表
+        
         machine->pageTable[vpn].valid = true;
+        machine->pageTable[vpn].physicalPage = ppn;
+        machine->ppnToThread[ppn] = currentThread;
+        machine->ppnTovpn[ppn] = vpn;
     }
     else {
 	printf("Unexpected user mode exception %d %d\n", which, type);

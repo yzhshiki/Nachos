@@ -39,7 +39,7 @@ Machine::Run()
     for (int i = 0;;i++) {
 		if(i % 1000 == 0)
 			currentThread->Yield();
-			// printf("Running Instruction %d\n", i);
+			printf("Running Instruction %d\n", i);
         OneInstruction(instr);
 		interrupt->OneTick();
 		if (singleStep && (runUntilTime <= stats->totalTicks))
@@ -121,7 +121,7 @@ Machine::OneInstruction(Instruction *instr)
     int pcAfter = registers[NextPCReg] + 4;
     int sum, diff, tmp, value;
     unsigned int rs, rt, imm;
-
+	printf("opcode: %d\n", instr->opCode);
     // Execute the instruction (cf. Kane's book)
     switch (instr->opCode) {
 	

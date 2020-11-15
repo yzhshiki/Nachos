@@ -30,7 +30,7 @@ class AddrSpace {
 
     void SaveState();			// Save/restore address space-specific
     void RestoreState();		// info on a context switch 
-
+    void setInvalid(int vpn){ pageTable[vpn].valid = false;}
   private:
     TranslationEntry *pageTable;	// Assume linear page table translation
 					// for now!

@@ -23,6 +23,7 @@
 void
 StartProcess(char *filename)
 {
+    currentThread->filename = filename;
     OpenFile *executable = fileSystem->Open(filename);
     AddrSpace *space;
 

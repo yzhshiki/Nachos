@@ -6,6 +6,7 @@
         "cstdlib": "cpp",
         "mutex": "cpp",
         "__config": "cpp",
-        "__threading_support": "cpp"
+        "__threading_support": "cpp",
+        "exception": "cpp"
     }
 }

@@ -193,6 +193,4 @@ void AddrSpace::RestoreState()
 {
     machine->pageTable = pageTable;
     machine->pageTableSize = numPages;
-    // for(int i = 0; i < numPages; i++)
-    //     machine->MemToThread[i] = currentThread;
 }

@@ -35,6 +35,8 @@
 
 #define NumPhysPages    32
 #define MemorySize 	(NumPhysPages * PageSize)
+#define DiskSize  (MemorySize * 10)
+#define DiskPages (DiskSize / PageSize)
 #define TLBSize		4		// if there is a TLB, make it small
 
 enum ExceptionType { NoException,           // Everything ok!
@@ -189,7 +191,7 @@ class Machine {
 
     TranslationEntry *pageTable;
     unsigned int pageTableSize;
-	char *disk;
+	
 	
 
   private:
@@ -204,15 +206,20 @@ class Machine {
 		void tlbReplaceTLBFIFO(int BadVAddr);
 		void tlbReplaceLRU(int BadVAddr);
 		void tlbReplaceCLOCK(int BadVAddr);
-		int allocMem(){ return mybitmap->Find(); }
+		int allocMem(){ return memBitMap->Find(); }
 		void freeMem();
 		int pageReplace();
+		int allocDisk(){ return diskBitMap->Find(); }
+
+		char *disk;
+		BitMap *memBitMap;
+		BitMap *diskBitMap;
+		Thread *ppnToThread[NumPhysPages];	//指明各个页属于哪个线程
+		int * ppnTovpn;		//与ppnToThread共同构成倒排页表
 
 	private:
 		TlbReplaceAlgo tlbAlgo;
-		BitMap *mybitmap;
-		BitMap *DiskBitMap;
-		Thread *MemToThread[NumPhysPages];	//指明各个页属于哪个线程
+		
 };
 
 extern void ExceptionHandler(ExceptionType which);

@@ -7,6 +7,8 @@
 // All rights reserved.  See copyright.h for copyright notice and limitation 
 // of liability and disclaimer of warranty provisions.
 
+#include <stdlib.h>
+#include <time.h>
 #include "copyright.h"
 #include "machine.h"
 #include "system.h"
@@ -61,13 +63,19 @@ Machine::Machine(bool debug)
     mainMemory = new char[MemorySize];
     for (i = 0; i < MemorySize; i++)
       	mainMemory[i] = 0;
-    mybitmap = new BitMap(NumPhysPages);
-    disk = new char[MemorySize * 10];
-    for(int i = 0; i < MemorySize * 10; i++)
+
+    disk = new char[DiskSize];
+    for(i = 0; i < DiskSize; i++)
         disk[i] = 0;
-    DiskBitMap = new BitMap(NumPhysPages * 10);
-     for (i = 0; i < MemorySize; i++)
-      	MemToThread[i] = NULL;
+    memBitMap = new BitMap(NumPhysPages);
+    diskBitMap = new BitMap(DiskPages);
+    
+    for(i = 0; i < NumPhysPages; i++)
+      	ppnToThread[i] = NULL;
+    ppnTovpn = new int[NumPhysPages];
+    for(i = 0; i < NumPhysPages; i++)
+        ppnTovpn[i] = -1;
+
 #ifdef USE_TLB
     tlbSize = TLBSize;
     tlb = new TranslationEntry[TLBSize];
@@ -100,7 +108,7 @@ Machine::~Machine()
             currentThread->getName(), currentThread->getTlbTimes(), currentThread->getTlbHits(), double(currentThread->getTlbHits())/double(currentThread->getTlbTimes()));
     if (tlb != NULL)
         delete [] tlb;
-    delete mybitmap;
+    delete memBitMap;
 }
 
 //----------------------------------------------------------------------
@@ -296,12 +304,12 @@ void Machine::tlbReplaceLRU(int BadVAddr){
 
 void Machine::freeMem(){
     for(int i = 0; i < NumPhysPages; i++){
-        if(pageTable[i].valid && mybitmap->Test(i))
-            mybitmap->Clear(i);
+        if(pageTable[i].valid && memBitMap->Test(i))
+            memBitMap->Clear(i);
     }
 }
 
 int Machine::pageReplace(){
-    srand((unsigned int)time(0));
+    srand((unsigned)time(NULL));
     return rand() % NumPhysPages;
 }

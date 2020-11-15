@@ -42,9 +42,9 @@ void Thread::init(char* threadName)
     space = NULL;
     tlbtimes = 0;
     tlbhits = 0;
-    ExSpace = new char[MemorySize];
-    for(int i = 0; i < MemorySize; i ++)
-        ExSpace[i] = 0;
+    vpnTodpn = new int[DiskSize];
+    for(int i = 0; i < DiskSize; i ++)
+        vpnTodpn[i] = -1;
 #endif
 
     this->tid = scheduler->acquireTid(this);  //申请一个tid

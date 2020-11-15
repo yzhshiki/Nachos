@@ -135,8 +135,10 @@ class Thread {
 		void Addtlbhits(){ tlbhits++; }
 		int getTlbTimes(){ return tlbtimes; }
 		int getTlbHits(){ return tlbhits; }
-    int UserProgPosInDisk;
-    int *ppnToDiskPos;
+    void setInvalid(int vpn){ this->space->setInvalid(vpn); }
+
+    int *vpnTodpn;
+    char *filename;
 #endif
 
 //把自己添加的变量、函数都写在最后方便使用
@@ -155,9 +157,8 @@ public:
   int getThreadStatus(){ return status; }
   int getPriority(){ return priority; }
   void setPriority(int prio){ priority = prio; }
-
-  char *ExSpace;
-  char *filename;
+  
+  
 };
 
 // Magical machine-dependent routines, defined in switch.s
