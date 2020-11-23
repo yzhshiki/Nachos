@@ -8,7 +8,7 @@
  */
 
 #include "syscall.h"
-int A[20];	/* size of physical memory; with code, we'll run out of space!*/
+int A[100];	/* size of physical memory; with code, we'll run out of space!*/
 
 int
 main()
@@ -16,12 +16,12 @@ main()
     int i, j, tmp;
 
     /* first initialize the array, in reverse sorted order */
-    for (i = 0; i < 20; i++)		
-        A[i] = 20 - i;
+    for (i = 0; i < 100; i++)		
+        A[i] = 100 - i;
 
     /* then sort! */
-    for (i = 0; i < 19; i++){
-        for (j = i; j < (19 - i); j++)
+    for (i = 0; i < 99; i++){
+        for (j = i; j < (99 - i); j++)
 	   if (A[j] > A[j + 1]) {	/* out of order -> need to swap ! */
 	      tmp = A[j];
 	      A[j] = A[j + 1];
