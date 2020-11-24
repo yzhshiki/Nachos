@@ -82,8 +82,10 @@ Thread::Thread(char* threadName, int prio)
 Thread::~Thread()
 {
     DEBUG('t', "Deleting thread \"%s\"\n", name);
+    #ifdef USER_PROGRAM
     printf("Thread: %s\ttlbtimes: %d\ttlbhits: %d\taccuracy: %lf\n", 
             this->name, this->tlbtimes, tlbhits, double(tlbhits)/double(this->tlbtimes));
+    #endif
     ASSERT(this != currentThread);
     if (stack != NULL)
 	DeallocBoundedArray((char *) stack, StackSize * sizeof(int));

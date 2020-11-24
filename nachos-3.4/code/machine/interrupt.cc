@@ -336,7 +336,7 @@ Interrupt::CheckIfDue(bool advanceClock)
     status = SystemMode;			// whatever we were doing,
 						// we are now going to be
 						// running in the kernel
-    printf("Handling....Next interrupt time: %d   Now: %d\n", when, stats->totalTicks);
+    // printf("Handling....Next interrupt time: %d   Now: %d\n", when, stats->totalTicks);
     (*(toOccur->handler))(toOccur->arg);	// call the interrupt handler 进行中断处理程序的处理
                                             // 就是这里，调用了TimerInterruptHandler，促成了定时器的定时作用
     status = old;				// restore the machine status
