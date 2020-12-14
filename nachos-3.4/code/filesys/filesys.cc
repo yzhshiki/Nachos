@@ -92,7 +92,7 @@ FileSystem::FileSystem(bool format)
     // (make sure no one else grabs these!)
 	freeMap->Mark(FreeMapSector);	    
 	freeMap->Mark(DirectorySector);
-
+    // printf("freeMap->Test(0): %d\n", freeMap->Test(0));
     // Second, allocate space for the data blocks containing the contents
     // of the directory and bitmap files.  There better be enough space!
 
@@ -125,7 +125,7 @@ FileSystem::FileSystem(bool format)
 	freeMap->WriteBack(freeMapFile);	 // flush changes to disk
 	directory->WriteBack(directoryFile);
 
-	if (DebugIsEnabled('f')) {
+	if (true) {
 	    freeMap->Print();
 	    directory->Print();
 
@@ -190,26 +190,32 @@ FileSystem::Create(char *name, int initialSize)
     else {	
         freeMap = new BitMap(NumSectors);
         freeMap->FetchFrom(freeMapFile);
+        // printf("freeMap->Test(0): %d\n", freeMap->Test(0));
         sector = freeMap->Find();	// find a sector to hold the file header
     	if (sector == -1) 		
             success = FALSE;		// no free block for file header 
         else if (!directory->Add(name, sector))
             success = FALSE;	// no space in directory
-	else {
-    	    hdr = new FileHeader;
-	    if (!hdr->Allocate(freeMap, initialSize))
-            	success = FALSE;	// no space on disk for data
-	    else {	
-	    	success = TRUE;
-		// everthing worked, flush all changes back to disk
-    	    	hdr->WriteBack(sector); 		
-    	    	directory->WriteBack(directoryFile);
-    	    	freeMap->WriteBack(freeMapFile);
-	    }
-            delete hdr;
-	}
+        else {
+            // printf("directory->Find(name): %d\n", directory->Find(name));
+                hdr = new FileHeader;
+            if (!hdr->Allocate(freeMap, initialSize)){
+                printf("allocate failed\n");
+                success = FALSE;	// no space on disk for data
+            }
+            else {
+                // printf("Writing back\n");	
+                success = TRUE;
+            // everthing worked, flush all changes back to disk
+                hdr->WriteBack(sector); 		
+                directory->WriteBack(directoryFile);
+                freeMap->WriteBack(freeMapFile);
+            }
+                delete hdr;
+        }
         delete freeMap;
     }
+    // printf("directory->Find(name): %d\n", directory->Find(name));
     delete directory;
     return success;
 }
@@ -233,7 +239,9 @@ FileSystem::Open(char *name)
 
     DEBUG('f', "Opening file %s\n", name);
     directory->FetchFrom(directoryFile);
-    sector = directory->Find(name); 
+    // printf("directory->Find(name): %d\n", directory->Find(name));
+    sector = directory->Find(name);
+    printf("sector: %d\n", sector); 
     if (sector >= 0) 		
 	openFile = new OpenFile(sector);	// name was found in directory 
     delete directory;

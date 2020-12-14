@@ -135,7 +135,9 @@ Directory::Add(char *name, int newSector)
     for (int i = 0; i < tableSize; i++)
         if (!table[i].inUse) {
             table[i].inUse = TRUE;
-            strncpy(table[i].name, name, FileNameMaxLen); 
+            table[i].isDirectory = FALSE;
+            // strncpy(table[i].name, name, FileNameMaxLen); 
+            table[i].name = name;
             table[i].sector = newSector;
         return TRUE;
 	}

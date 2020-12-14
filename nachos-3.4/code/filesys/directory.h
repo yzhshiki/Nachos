@@ -19,6 +19,7 @@
 
 #include "openfile.h"
 
+
 #define FileNameMaxLen 		9	// for simplicity, we assume 
 					// file names are <= 9 characters long
 
@@ -34,8 +35,12 @@ class DirectoryEntry {
     bool inUse;				// Is this directory entry in use?
     int sector;				// Location on disk to find the 
 					//   FileHeader for this file 
-    char name[FileNameMaxLen + 1];	// Text name for file, with +1 for 
-					// the trailing '\0'
+    // char name[FileNameMaxLen + 1];	// Text name for file, with +1 for 
+		// 			// the trailing '\0'
+
+    bool isDirectory; 
+    char* name;
+
 };
 
 // The following class defines a UNIX-like "directory".  Each entry in

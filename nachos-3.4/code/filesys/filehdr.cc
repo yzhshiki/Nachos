@@ -40,14 +40,35 @@
 
 bool
 FileHeader::Allocate(BitMap *freeMap, int fileSize)
-{ 
+{
+    
+    time_t currentTime = time(NULL);
+    createTime = currentTime;
+    lastAccessTime = currentTime;
+    lastWriteTime = currentTime;
     numBytes = fileSize;
     numSectors  = divRoundUp(fileSize, SectorSize);
-    if (freeMap->NumClear() < numSectors)
+    if (freeMap->NumClear() < numSectors + numSectors / NumDirect) //nextHdr也需要sector！
 	return FALSE;		// not enough space
 
-    for (int i = 0; i < numSectors; i++)
-	dataSectors[i] = freeMap->Find();
+    FileHeader *hdr = this;
+    FileHeader *nextHdr;
+    int curSec;
+    int i;
+    for (i = 0; i < numSectors; i++){
+        if(i % NumDirect == 0 && i != 0){
+            nextHdr = new FileHeader;
+            hdr->nextHdrSector = freeMap->Find();
+            // printf("allocate %d\n", hdr->nextHdrSector);
+            if(i != NumDirect)  hdr->WriteBack(curSec);     //第一个文件头不需要也无法在这里writeback
+            curSec = hdr->nextHdrSector;
+            hdr = nextHdr;
+        }
+        hdr->dataSectors[i % NumDirect] = freeMap->Find();
+        // printf("allocate %d\n", hdr->dataSectors[i % NumDirect]);
+    }
+    hdr->nextHdrSector = -1;
+	if(i >= NumDirect)  hdr->WriteBack(curSec);     //最后一个文件头writeBack回磁盘
     return TRUE;
 }
 
@@ -61,10 +82,18 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 void 
 FileHeader::Deallocate(BitMap *freeMap)
 {
+    FileHeader *hdr = this;
+    FileHeader *nextHdr;
     for (int i = 0; i < numSectors; i++) {
-	ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
-	freeMap->Clear((int) dataSectors[i]);
+        if(i % NumDirect == 0 && i != 0){
+            nextHdr = new FileHeader;
+            nextHdr->FetchFrom(hdr->nextHdrSector);
+            hdr = nextHdr;
+        }
+        ASSERT(freeMap->Test((int) hdr->dataSectors[i % NumDirect]));  // ought to be marked!
+        freeMap->Clear((int) hdr->dataSectors[i % NumDirect]);
     }
+    
 }
 
 //----------------------------------------------------------------------
@@ -90,6 +119,7 @@ FileHeader::FetchFrom(int sector)
 void
 FileHeader::WriteBack(int sector)
 {
+    // printf("FileHeader writing back to %d\n", sector);
     synchDisk->WriteSector(sector, (char *)this); 
 }
 
@@ -106,7 +136,17 @@ FileHeader::WriteBack(int sector)
 int
 FileHeader::ByteToSector(int offset)
 {
-    return(dataSectors[offset / SectorSize]);
+    int tarSector = offset / SectorSize;
+    int noHdr = tarSector / NumDirect;
+    int tarIndex = tarSector % NumDirect;
+    FileHeader *hdr = this;
+    FileHeader *nextHdr;
+    for(int i = 0; i < noHdr; i ++){
+        nextHdr = new FileHeader;
+        nextHdr->FetchFrom(hdr->nextHdrSector);
+        hdr = nextHdr;
+    }
+    return(hdr->dataSectors[tarIndex]);
 }
 
 //----------------------------------------------------------------------
@@ -117,7 +157,18 @@ FileHeader::ByteToSector(int offset)
 int
 FileHeader::FileLength()
 {
-    return numBytes;
+    FileHeader *hdr = this;
+    FileHeader *nextHdr;
+    int totalBytes = numBytes;
+    while(hdr->nextHdrSector != -1){
+        totalBytes += hdr->numBytes;
+        nextHdr = new FileHeader;
+        nextHdr->FetchFrom(hdr->nextHdrSector);
+        hdr = nextHdr;
+    }
+    return totalBytes;
+    // printf("total: %d, numBytes: %d", totalBytes, numBytes);
+    // return numBytes;
 }
 
 //----------------------------------------------------------------------
@@ -134,10 +185,10 @@ FileHeader::Print()
 
     printf("FileHeader contents.  File size: %d.  File blocks:\n", numBytes);
     for (i = 0; i < numSectors; i++)
-	printf("%d ", dataSectors[i]);
+	    printf("%d ", dataSectors[i]);
     printf("\nFile contents:\n");
     for (i = k = 0; i < numSectors; i++) {
-	synchDisk->ReadSector(dataSectors[i], data);
+	    synchDisk->ReadSector(dataSectors[i], data);
         for (j = 0; (j < SectorSize) && (k < numBytes); j++, k++) {
 	    if ('\040' <= data[j] && data[j] <= '\176')   // isprint(data[j])
 		printf("%c", data[j]);

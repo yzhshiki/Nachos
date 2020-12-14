@@ -14,6 +14,7 @@
 
 #include "copyright.h"
 
+#include "filehdr.h"
 #include "utility.h"
 #include "filesys.h"
 #include "system.h"
@@ -111,7 +112,7 @@ Print(char *name)
 #define FileName 	"TestFile"
 #define Contents 	"1234567890"
 #define ContentSize 	strlen(Contents)
-#define FileSize 	((int)(ContentSize * 5000))
+#define FileSize 	((int)(ContentSize * 500))
 
 static void 
 FileWrite()
@@ -121,24 +122,32 @@ FileWrite()
 
     printf("Sequential write of %d byte file, in %d byte chunks\n", 
 	FileSize, ContentSize);
-    if (!fileSystem->Create(FileName, 0)) {
+    if (!fileSystem->Create(FileName, FileSize)) {
       printf("Perf test: can't create %s\n", FileName);
       return;
     }
+    // printf("created\n");
     openFile = fileSystem->Open(FileName);
+    // printf("opened\n");
+    // printf("", hdr->);
     if (openFile == NULL) {
-	printf("Perf test: unable to open %s\n", FileName);
-	return;
+        printf("Perf test: unable to open %s\n", FileName);
+        return;
     }
     for (i = 0; i < FileSize; i += ContentSize) {
         numBytes = openFile->Write(Contents, ContentSize);
-	if (numBytes < 10) {
-	    printf("Perf test: unable to write %s\n", FileName);
-	    delete openFile;
-	    return;
-	}
+        // printf("writed\n");
+        if (numBytes < 10) {
+            printf("Perf test: unable to write %s\n", FileName);
+            delete openFile;
+            return;
+        }
     }
+    FileHeader *hdr = new FileHeader;
+    hdr = openFile->getHdr();
+    printf("createTime: %ld, lastAccessTime: %ld, lastWriteTime: %ld\n", hdr->createTime,hdr->lastAccessTime, hdr->lastWriteTime);
     delete openFile;	// close file
+    
 }
 
 static void 
@@ -166,7 +175,11 @@ FileRead()
 	}
     }
     delete [] buffer;
+    FileHeader *hdr = new FileHeader;
+    hdr = openFile->getHdr();
+    printf("createTime: %ld, lastAccessTime: %ld, lastWriteTime: %ld\n", hdr->createTime,hdr->lastAccessTime, hdr->lastWriteTime);
     delete openFile;	// close file
+    
 }
 
 void

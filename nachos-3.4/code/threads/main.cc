@@ -63,7 +63,7 @@ extern void ThreadTest(void), Copy(char *unixFile, char *nachosFile);
 extern void Print(char *file), PerformanceTest(void);
 extern void StartProcess(char *file),  StartMultProcess(char *file),ConsoleTest(char *in, char *out);
 extern void MailTest(int networkID);
-extern void PrintHello();
+// extern void PrintHello();
 
 //----------------------------------------------------------------------
 // main
@@ -87,30 +87,33 @@ main(int argc, char **argv)
 
     DEBUG('t', "Entering main");
     (void) Initialize(argc, argv);
+	    // printf("argcount: %d argv: %s\n", argc, argv[1]);
+
 	// PrintHello();
     
 #ifdef THREADS	
-    for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
-      argCount = 1;				//获得执行参数中表示完整意义的参数的个数
-      switch (argv[0][1]) {
-      case 'q':		//即cq参数，把其后的数字设为测试线程数
-        testnum = atoi(argv[1]);	
-        argCount++;
-        break;
-      default:
-        testnum = 1;
-        break;
-      }
-    }
+    // for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
+    //   argCount = 1;				//获得执行参数中表示完整意义的参数的个数
+    //   switch (argv[0][1]) {
+    //   case 'q':		//即cq参数，把其后的数字设为测试线程数
+    //     testnum = atoi(argv[1]);	
+    //     argCount++;
+    //     break;
+    //   default:
+    //     testnum = 1;
+    //     break;
+    //   }
+    // }
 
-    ThreadTest();
+    // ThreadTest();
 	// printf("thread main finished threadtest\n");
 #endif
-
+	// printf("argcount: %d argv: %s\n", argc, argv[1]);
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
 	argCount = 1;
         if (!strcmp(*argv, "-z"))               // print copyright
             printf (copyright);
+
 #ifdef USER_PROGRAM
         if (!strcmp(*argv, "-x")) {        	// run a user program
 	    ASSERT(argc > 1);
@@ -128,6 +131,7 @@ main(int argc, char **argv)
 					// Nachos will loop forever waiting 
 					// for console input
 	}
+
 #endif // USER_PROGRAM
 #ifdef FILESYS
 	if (!strcmp(*argv, "-cp")) { 		// copy from UNIX to Nachos
