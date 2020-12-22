@@ -62,12 +62,14 @@ class FileHeader {
     int numSectors;			// Number of data sectors in the file
     int dataSectors[NumDirect];		// Disk sector numbers for each data 
 					// block in the file
+    int nextHdrSector;  //下一个
   
   public:
     time_t createTime;	// Create time of the file
     time_t lastAccessTime;	// Last access time of the file
     time_t lastWriteTime;	// Last write time of the file
-    int nextHdrSector;  //下一个
+    void AddSector(BitMap *freeMap, OpenFile* freeMapFile, int FirstHdrSec);
+    
 };
 
 #endif // FILEHDR_H

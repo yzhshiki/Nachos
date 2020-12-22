@@ -60,7 +60,7 @@ extern int testnum;		//记录测试的线程数
 // External functions used by this file
 
 extern void ThreadTest(void), Copy(char *unixFile, char *nachosFile);
-extern void Print(char *file), PerformanceTest(void);
+extern void Print(char *file), PerformanceTest(void), multDirTest(void), DynamicTest(void);
 extern void StartProcess(char *file),  StartMultProcess(char *file),ConsoleTest(char *in, char *out);
 extern void MailTest(int networkID);
 // extern void PrintHello();
@@ -152,6 +152,11 @@ main(int argc, char **argv)
             fileSystem->Print();
 	} else if (!strcmp(*argv, "-t")) {	// performance test
             PerformanceTest();
+	}else if (!strcmp(*argv, "-tmd")) {	// multDirectory test
+            multDirTest();
+	}
+	else if (!strcmp(*argv, "-td")) {	// multDirectory test
+            DynamicTest();
 	}
 #endif // FILESYS
 #ifdef NETWORK

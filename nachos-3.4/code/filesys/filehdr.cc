@@ -26,6 +26,7 @@
 
 #include "system.h"
 #include "filehdr.h"
+#include "filesys.h"
 
 //----------------------------------------------------------------------
 // FileHeader::Allocate
@@ -53,10 +54,10 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 
     FileHeader *hdr = this;
     FileHeader *nextHdr;
-    int curSec;
+    int curSec;     //用于帮助第一个之后的文件头writeback
     int i;
     for (i = 0; i < numSectors; i++){
-        if(i % NumDirect == 0 && i != 0){
+        if(i % NumDirect == 0 && i != 0){   //每个文件头里放k * (NumDirect - 1)个索引
             nextHdr = new FileHeader;
             hdr->nextHdrSector = freeMap->Find();
             // printf("allocate %d\n", hdr->nextHdrSector);
@@ -67,7 +68,7 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
         hdr->dataSectors[i % NumDirect] = freeMap->Find();
         // printf("allocate %d\n", hdr->dataSectors[i % NumDirect]);
     }
-    hdr->nextHdrSector = -1;
+    hdr->nextHdrSector = -1;    //最后一个文件头
 	if(i >= NumDirect)  hdr->WriteBack(curSec);     //最后一个文件头writeBack回磁盘
     return TRUE;
 }
@@ -157,18 +158,18 @@ FileHeader::ByteToSector(int offset)
 int
 FileHeader::FileLength()
 {
-    FileHeader *hdr = this;
-    FileHeader *nextHdr;
-    int totalBytes = numBytes;
-    while(hdr->nextHdrSector != -1){
-        totalBytes += hdr->numBytes;
-        nextHdr = new FileHeader;
-        nextHdr->FetchFrom(hdr->nextHdrSector);
-        hdr = nextHdr;
-    }
-    return totalBytes;
+    // FileHeader *hdr = this;
+    // FileHeader *nextHdr;
+    // int totalBytes = numBytes;
+    // while(hdr->nextHdrSector != -1){
+    //     totalBytes += hdr->numBytes;
+    //     nextHdr = new FileHeader;
+    //     nextHdr->FetchFrom(hdr->nextHdrSector);
+    //     hdr = nextHdr;
+    // }
+    // return totalBytes;
     // printf("total: %d, numBytes: %d", totalBytes, numBytes);
-    // return numBytes;
+    return numBytes;
 }
 
 //----------------------------------------------------------------------
@@ -184,11 +185,26 @@ FileHeader::Print()
     char *data = new char[SectorSize];
 
     printf("FileHeader contents.  File size: %d.  File blocks:\n", numBytes);
-    for (i = 0; i < numSectors; i++)
-	    printf("%d ", dataSectors[i]);
+    FileHeader* hdr = this;
+    for (i = 0; i < numSectors; i++){
+        if (i !=0 && i % NumDirect ==0 ){ 
+            FileHeader* tmp_hdr = new FileHeader;
+            tmp_hdr->FetchFrom(hdr->nextHdrSector);
+            hdr = tmp_hdr;
+        }
+        printf("%d ", hdr->dataSectors[i%NumDirect]);
+    }
+	
+    printf("\nCreate Time: %ld Last Access Time: %ld Last Write Time: %ld \n",createTime,lastAccessTime,lastWriteTime);
     printf("\nFile contents:\n");
+    hdr = this;
     for (i = k = 0; i < numSectors; i++) {
-	    synchDisk->ReadSector(dataSectors[i], data);
+        if (i !=0 && i % NumDirect ==0 ){ 
+            FileHeader* tmp_hdr = new FileHeader;
+            tmp_hdr->FetchFrom(hdr->nextHdrSector);
+            hdr = tmp_hdr;
+        }
+	    synchDisk->ReadSector(hdr->dataSectors[i%NumDirect], data);
         for (j = 0; (j < SectorSize) && (k < numBytes); j++, k++) {
 	    if ('\040' <= data[j] && data[j] <= '\176')   // isprint(data[j])
 		printf("%c", data[j]);
@@ -197,5 +213,50 @@ FileHeader::Print()
 	}
         printf("\n"); 
     }
+    // printf("before delete\n");
     delete [] data;
+    // printf("after delete\n");
+}
+
+void FileHeader::AddSector(BitMap *freeMap, OpenFile* freeMapFile, int FirstHdrSec){
+    time_t currentTime = time(NULL);
+    createTime = currentTime;
+    lastAccessTime = currentTime;
+    lastWriteTime = currentTime;
+    
+    if (freeMap->NumClear() < 2) //nextHdr需要一个sector
+	return ;		// not enough space
+
+    FileHeader *hdr = this;
+    FileHeader *nextHdr;
+    int curSec = FirstHdrSec;     //用于帮助第一个之后的文件头writeback
+    int i;
+    for (i = 0; i < numSectors; i++){   //先找到最后一个文件头
+        if(i % NumDirect == 0 && i != 0){
+            nextHdr = new FileHeader;
+            nextHdr->FetchFrom(hdr->nextHdrSector);
+            curSec = hdr->nextHdrSector;
+            hdr = nextHdr;
+        }
+        // hdr->dataSectors[i % NumDirect] = freeMap->Find();
+        // printf("allocate %d\n", hdr->dataSectors[i % NumDirect]);
+    }
+    if(i % NumDirect == 0 && i != 0){     //当前最后一个文件头刚好满了，需要新增一个文件头 
+        int nextHdrSec = freeMap->Find();
+        hdr->nextHdrSector = nextHdrSec;    //先把当前最后文件头的下一文件头sec从-1改成新值
+        hdr->WriteBack(curSec);     //把当前最后文件头写回
+        nextHdr = new FileHeader;
+        hdr = nextHdr;
+        hdr->nextHdrSector = -1;    //新的最后文件头的下一文件头sec为-1
+        curSec = nextHdrSec;    //新的最后文件头所在sec就是刚刚分配的
+        printf("Added a new fileHeader on sector: %d\n", curSec);
+    }
+    hdr->dataSectors[i % NumDirect] = freeMap->Find();
+    printf("Added a new Sector: %d\n", hdr->dataSectors[i % NumDirect]);
+	hdr->WriteBack(curSec);     //最后一个文件头writeBack回磁盘
+    freeMap->WriteBack(freeMapFile);
+    numBytes += SectorSize;
+    numSectors  += 1;
+    return;
+    
 }

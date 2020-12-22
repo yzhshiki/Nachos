@@ -14,6 +14,7 @@
 
 #include "copyright.h"
 
+#include "directory.h"
 #include "filehdr.h"
 #include "utility.h"
 #include "filesys.h"
@@ -50,7 +51,7 @@ Copy(char *from, char *to)
 
 // Create a Nachos file of the same length
     DEBUG('f', "Copying file %s, size %d, to file %s\n", from, fileLength, to);
-    if (!fileSystem->Create(to, fileLength)) {	 // Create Nachos file
+    if (!fileSystem->Create(to, fileLength, false)) {	 // Create Nachos file
 	printf("Copy: couldn't create output file %s\n", to);
 	fclose(fp);
 	return;
@@ -122,7 +123,7 @@ FileWrite()
 
     printf("Sequential write of %d byte file, in %d byte chunks\n", 
 	FileSize, ContentSize);
-    if (!fileSystem->Create(FileName, FileSize)) {
+    if (!fileSystem->Create(FileName, FileSize, FALSE)) {
       printf("Perf test: can't create %s\n", FileName);
       return;
     }
@@ -178,6 +179,7 @@ FileRead()
     FileHeader *hdr = new FileHeader;
     hdr = openFile->getHdr();
     printf("createTime: %ld, lastAccessTime: %ld, lastWriteTime: %ld\n", hdr->createTime,hdr->lastAccessTime, hdr->lastWriteTime);
+    // hdr->Print();
     delete openFile;	// close file
     
 }
@@ -186,13 +188,52 @@ void
 PerformanceTest()
 {
     printf("Starting file system performance test:\n");
+    OpenFile *rootDirFile = new OpenFile(1);
+    Directory *rootDir = new Directory((sizeof(DirectoryEntry) * 10));
+    rootDir->FetchFrom(rootDirFile);
+    rootDir->List();
     stats->Print();
     FileWrite();
     FileRead();
-    if (!fileSystem->Remove(FileName)) {
-      printf("Perf test: unable to remove %s\n", FileName);
-      return;
-    }
+    // if (!fileSystem->Remove(FileName)) {
+    //   printf("Perf test: unable to remove %s\n", FileName);
+    //   return;
+    // }
     stats->Print();
 }
 
+void multDirTest(){
+    printf("Starting file system mult Directory  test:\n");
+    OpenFile *rootDirFile = new OpenFile(1);
+    Directory *rootDir = new Directory((sizeof(DirectoryEntry) * 10));
+    rootDir->FetchFrom(rootDirFile);
+    rootDir->List();
+    printf("*******creating*******:\n");
+    // return;
+    fileSystem->Create("pkuHere", SectorSize, false);
+    fileSystem->Create("pkuss", SectorSize, true);
+    fileSystem->Create("pkueecs", SectorSize, true);
+    fileSystem->Create("pkuss/yj3", SectorSize, true);
+    fileSystem->Create("pkuss/yj3/yzh", SectorSize, false);
+    rootDir->FetchFrom(rootDirFile);
+    rootDir->List();
+}
+
+void DynamicTest(){ 
+    fileSystem->Create("dynamic.txt", 0, false);
+        OpenFile *openFile;    
+    int i, numBytes;
+
+    openFile = fileSystem->Open("dynamic.txt");
+    //printf("%d\n", openFile->hdr->nextFdrSector);
+    if (openFile == NULL) {
+        printf("Dynamic test: unable to open %s\n", FileName);
+        return;
+    }
+    for (i = 0; i < 300; i++) {
+        numBytes = openFile->Write(Contents, ContentSize);
+        printf("Write %d bytes:%s\n",numBytes,Contents);
+    }
+    // fileSystem->Print();
+    delete openFile;	// close file
+}

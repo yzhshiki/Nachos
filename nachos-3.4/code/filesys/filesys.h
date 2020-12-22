@@ -74,7 +74,7 @@ class FileSystem {
 					// the disk, so initialize the directory
     					// and the bitmap of free blocks.
 
-    bool Create(char *name, int initialSize);  	
+    bool Create(char *name, int initialSize, bool isDirectory);  	
 					// Create a file (UNIX creat)
 
     OpenFile* Open(char *name); 	// Open a file (UNIX open)
@@ -90,6 +90,10 @@ class FileSystem {
 					// represented as a file
    OpenFile* directoryFile;		// "Root" directory -- list of 
 					// file names, represented as a file
+  public:
+	int findDirectory(char *name, int curDirSec);	//返回文件所在的目录的扇区
+	char* splitFileName(char *name);
+	void AddSector(FileHeader *hdr,int hdrSector);
 };
 
 #endif // FILESYS

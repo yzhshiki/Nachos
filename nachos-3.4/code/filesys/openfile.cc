@@ -87,6 +87,8 @@ int
 OpenFile::Write(char *into, int numBytes)
 {
     int result = WriteAt(into, numBytes, seekPosition);
+    if(result == 0)
+        printf("Writing action Exceed!\n");
     seekPosition += result;
     time_t currentTime = time(NULL);
     hdr->lastAccessTime = currentTime; 
@@ -155,15 +157,19 @@ OpenFile::ReadAt(char *into, int numBytes, int position)
 int
 OpenFile::WriteAt(char *from, int numBytes, int position)
 {
-    
+    // printf("position: %d", position);
     int fileLength = hdr->FileLength();
     // printf("numBytes: %d, position: %d, filelen: %d\n", numBytes, position, fileLength);
     int i, firstSector, lastSector, numSectors;
     bool firstAligned, lastAligned;
     char *buf;
 
-    if ((numBytes <= 0) || (position >= fileLength))
-	return 0;				// check request
+    if ((numBytes <= 0) || (position >= fileLength)){
+        // ASSERT(false);
+        fileSystem->AddSector(hdr, hdrSector);
+        return WriteAt(from, numBytes, position);
+    }
+	
     if ((position + numBytes) > fileLength)
 	numBytes = fileLength - position;
     DEBUG('f', "Writing %d bytes at %d, from file of length %d.\n", 	

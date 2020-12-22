@@ -4,6 +4,8 @@
         "__config": "cpp",
         "ios": "cpp",
         "new": "cpp",
-        "unordered_map": "cpp"
+        "unordered_map": "cpp",
+        "__hash_table": "cpp",
+        "deque": "cpp"
     }
 }

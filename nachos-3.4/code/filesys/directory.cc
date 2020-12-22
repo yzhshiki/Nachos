@@ -127,17 +127,17 @@ Directory::Find(char *name)
 //----------------------------------------------------------------------
 
 bool
-Directory::Add(char *name, int newSector)
+Directory::Add(char *name, int newSector, bool isDirectory)
 { 
     if (FindIndex(name) != -1)
 	return FALSE;
-
+    
     for (int i = 0; i < tableSize; i++)
         if (!table[i].inUse) {
             table[i].inUse = TRUE;
-            table[i].isDirectory = FALSE;
-            // strncpy(table[i].name, name, FileNameMaxLen); 
-            table[i].name = name;
+            table[i].isDirectory = isDirectory;
+            strncpy(table[i].name, name, FileNameMaxLen); 
+            // table[i].name = name;
             table[i].sector = newSector;
         return TRUE;
 	}
@@ -172,8 +172,21 @@ void
 Directory::List()
 {
    for (int i = 0; i < tableSize; i++)
-	if (table[i].inUse)
-	    printf("%s\n", table[i].name);
+	if (table[i].inUse){
+        char *type = "File";
+        if(table[i].isDirectory)
+            type = "Directory";
+        printf("%s\t %s on sector: %d\n", table[i].name, type, table[i].sector);
+        if(table[i].isDirectory){
+            printf("***in %s***\n", table[i].name);
+            OpenFile *chdDirFile = new OpenFile(table[i].sector);
+            Directory *chdDir = new Directory((sizeof(DirectoryEntry) * 10));
+            chdDir->FetchFrom(chdDirFile);
+            chdDir->List();
+            printf("***in %s***\n", table[i].name);
+        }
+    }
+	    
 }
 
 //----------------------------------------------------------------------
@@ -193,6 +206,14 @@ Directory::Print()
 	    printf("Name: %s, Sector: %d\n", table[i].name, table[i].sector);
 	    hdr->FetchFrom(table[i].sector);
 	    hdr->Print();
+        printf("Name: %s is a directory ? %d\n",table[i].name, table[i].isDirectory);
+        if(table[i].isDirectory){
+            printf("Name: %s is a directory\n");
+            OpenFile *chdDirFile = new OpenFile(table[i].sector);
+            Directory *chdDir = new Directory((sizeof(DirectoryEntry) * 10));
+            chdDir->FetchFrom(chdDirFile);
+            chdDir->Print();
+        }
 	}
     printf("\n");
     delete hdr;

@@ -125,7 +125,7 @@ FileSystem::FileSystem(bool format)
 	freeMap->WriteBack(freeMapFile);	 // flush changes to disk
 	directory->WriteBack(directoryFile);
 
-	if (true) {
+	if (false) {
 	    freeMap->Print();
 	    directory->Print();
 
@@ -172,7 +172,7 @@ FileSystem::FileSystem(bool format)
 //----------------------------------------------------------------------
 
 bool
-FileSystem::Create(char *name, int initialSize)
+FileSystem::Create(char *name, int initialSize, bool isDirectory)
 {
     Directory *directory;
     BitMap *freeMap;
@@ -181,21 +181,37 @@ FileSystem::Create(char *name, int initialSize)
     bool success;
 
     DEBUG('f', "Creating file %s, size %d\n", name, initialSize);
+    int fileDirSec = findDirectory(name, DirectorySector);
+    name = splitFileName(name);
 
+    if(fileDirSec == -1){
+        printf("***** %s's dir not exist*****\n", name);
+        ASSERT(false);
+    }
+    OpenFile *fileDirFile = new OpenFile(fileDirSec);
     directory = new Directory(NumDirEntries);
-    directory->FetchFrom(directoryFile);
-
-    if (directory->Find(name) != -1)
-      success = FALSE;			// file is already in directory
+    directory->FetchFrom(fileDirFile);
+    
+    if (directory->Find(name) != -1){
+        printf("file is already in directory\n");
+        success = FALSE;			// file is already in directory
+    }
+      
     else {	
         freeMap = new BitMap(NumSectors);
         freeMap->FetchFrom(freeMapFile);
         // printf("freeMap->Test(0): %d\n", freeMap->Test(0));
         sector = freeMap->Find();	// find a sector to hold the file header
-    	if (sector == -1) 		
+    	if (sector == -1){
+            printf("no free block for file header \n");
             success = FALSE;		// no free block for file header 
-        else if (!directory->Add(name, sector))
+        } 		
+            
+        else if (!directory->Add(name, sector, isDirectory)){
+            printf("no space in directory \n");
             success = FALSE;	// no space in directory
+        }
+            
         else {
             // printf("directory->Find(name): %d\n", directory->Find(name));
                 hdr = new FileHeader;
@@ -208,7 +224,7 @@ FileSystem::Create(char *name, int initialSize)
                 success = TRUE;
             // everthing worked, flush all changes back to disk
                 hdr->WriteBack(sector); 		
-                directory->WriteBack(directoryFile);
+                directory->WriteBack(fileDirFile);
                 freeMap->WriteBack(freeMapFile);
             }
                 delete hdr;
@@ -241,7 +257,7 @@ FileSystem::Open(char *name)
     directory->FetchFrom(directoryFile);
     // printf("directory->Find(name): %d\n", directory->Find(name));
     sector = directory->Find(name);
-    printf("sector: %d\n", sector); 
+    // printf("sector: %d\n", sector); 
     if (sector >= 0) 		
 	openFile = new OpenFile(sector);	// name was found in directory 
     delete directory;
@@ -347,3 +363,61 @@ FileSystem::Print()
     delete freeMap;
     delete directory;
 } 
+
+//假如name == "pku/ss/5430"且存在目录pku/ss/，则得到这个目录的头文件所在的sector
+int FileSystem::findDirectory(char *name, int curDirSec){
+    char *tmp = name;
+    if(*tmp == '/'){    //如果文件名最开始是'/'，去掉它
+        tmp++;
+        name++;
+    }
+    int len = 0;
+    while(*tmp!='/' && *tmp!='\0' &&tmp!=0){
+        tmp++;
+        len++;
+    }
+    char *chdDirName = new char[len + 1];
+    memcpy(chdDirName, name, len);  //三次递归分别是pku, ss, 5430 两次目录一次文件
+    chdDirName[len] = '\0';
+    // printf("curDirSec: %d\n", curDirSec);
+    // printf("chdDirName: %s tmp: %s\n", chdDirName, tmp);
+    if(tmp == 0 || *tmp == '\0'){   //说明name是文件名, chdDirName也就是文件名
+        return curDirSec;
+    }
+    else{   //chdDirName是一个目录名
+        Directory *curDir = new Directory(DirectoryFileSize);
+        OpenFile *curDirFile = new OpenFile(curDirSec);
+        curDir->FetchFrom(curDirFile);
+        int chdDirSec = curDir->Find(chdDirName);
+        if(chdDirSec == -1)     //当前目录下没有这个子目录
+            return -1;
+        
+        return findDirectory(tmp, chdDirSec);
+    }
+}
+//假如name == "pku/ss/5430"且存在目录pku/ss/，则得到字符串“5430”
+char* FileSystem::splitFileName(char *name){
+    char *tmp = name;
+    if(*tmp == '/'){
+        tmp++;
+        name++;
+    }
+    int len = 0, last = 0;
+    while(*tmp!='\0' &&tmp!=0){
+        tmp++;
+        len++;
+        if(*tmp == '/')
+            last = len+1;
+    }
+    char *chdDirName = new char[len + 1 - last];
+    memcpy(chdDirName, name + last, len - last);
+    chdDirName[len - last] = '\0';
+    // printf("True Name: %s\n", chdDirName);
+    return chdDirName;
+}
+
+void FileSystem::AddSector(FileHeader *hdr, int hdrSector){
+    BitMap *freeMap = new BitMap(NumSectors);
+    freeMap->FetchFrom(freeMapFile);
+    hdr->AddSector(freeMap, freeMapFile, hdrSector);
+}
