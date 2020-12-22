@@ -159,6 +159,10 @@ Directory::Remove(char *name)
 
     if (i == -1)
 	return FALSE; 		// name not in directory
+    FileHeader *hdr = new FileHeader;
+    hdr->FetchFrom(table[i].sector);
+    if(hdr->userCount > 0)      //如果该文件还有用户打开着
+        return FALSE;
     table[i].inUse = FALSE;
     return TRUE;	
 }
@@ -218,3 +222,4 @@ Directory::Print()
     printf("\n");
     delete hdr;
 }
+

@@ -38,6 +38,7 @@ class DirectoryEntry {
     char name[FileNameMaxLen + 1];	// Text name for file, with +1 for 
 		// 			// the trailing '\0'
 
+
     bool isDirectory; 
     // char* name;
 

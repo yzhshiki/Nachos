@@ -230,7 +230,7 @@ void DynamicTest(){
         printf("Dynamic test: unable to open %s\n", FileName);
         return;
     }
-    for (i = 0; i < 300; i++) {
+    for (i = 0; i < 10; i++) {
         numBytes = openFile->Write(Contents, ContentSize);
         printf("Write %d bytes:%s\n",numBytes,Contents);
     }

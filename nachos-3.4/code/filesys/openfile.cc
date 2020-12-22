@@ -30,8 +30,17 @@
 OpenFile::OpenFile(int sector)
 { 
     hdr = new FileHeader;
+    printf("new hdr of sector: %d\n", sector);
     hdrSector = sector;
-    hdr->FetchFrom(sector);
+    hdr->FetchFrom(hdrSector);
+    // printf("acquire rwlock\n");
+    // printf("lock: %d\n", hdr->rwlock);
+    // hdr->rwlock->Acquire();
+    // printf("hdr fetch\n");
+    // hdr->FetchFrom(hdrSector);
+    // hdr->userCount ++;
+    // hdr->WriteBack(hdrSector);
+    // hdr->rwlock->Release();
     seekPosition = 0;
 }
 
@@ -42,6 +51,11 @@ OpenFile::OpenFile(int sector)
 
 OpenFile::~OpenFile()
 {
+    // hdr->rwlock->Acquire();
+    // hdr->FetchFrom(hdrSector);
+    // hdr->userCount --;
+    // hdr->WriteBack(hdrSector);
+    // hdr->rwlock->Release();
     delete hdr;
 }
 
@@ -75,17 +89,38 @@ OpenFile::Seek(int position)
 int
 OpenFile::Read(char *into, int numBytes)
 {
+    // hdr->rclock->Acquire();
+    // hdr->FetchFrom(hdrSector);
+    // hdr->readerCount ++;
+    // hdr->WriteBack(hdrSector);
+    // if(hdr->readerCount == 1)
+    //     hdr->rwlock->Acquire();
+    // hdr->rclock->Release();
+
+    // hdr->FetchFrom(hdrSector);
     int result = ReadAt(into, numBytes, seekPosition);
     time_t currentTime = time(NULL);
     hdr->lastAccessTime = currentTime; 
     seekPosition += result;
     hdr->WriteBack(hdrSector);
+
+    // hdr->rclock->Acquire();
+    // hdr->FetchFrom(hdrSector);
+    // hdr->readerCount --;
+    // hdr->WriteBack(hdrSector);
+    // if(hdr->readerCount == 0)
+    //     hdr->rwlock->Release();
+    // hdr->rclock->Release();
+
     return result;
 }
 
 int
 OpenFile::Write(char *into, int numBytes)
 {
+    // hdr->rwlock->Acquire();
+
+    hdr->FetchFrom(hdrSector);
     int result = WriteAt(into, numBytes, seekPosition);
     if(result == 0)
         printf("Writing action Exceed!\n");
@@ -95,6 +130,9 @@ OpenFile::Write(char *into, int numBytes)
     hdr->lastWriteTime = currentTime;
     hdr->WriteBack(hdrSector);
     // printf("Writed %d\n", result);
+
+    hdr->WriteBack(hdrSector);
+    // hdr->rwlock->Release();
     return result;
 }
 

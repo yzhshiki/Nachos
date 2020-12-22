@@ -93,7 +93,7 @@ class FileSystem {
   public:
 	int findDirectory(char *name, int curDirSec);	//返回文件所在的目录的扇区
 	char* splitFileName(char *name);
-	void AddSector(FileHeader *hdr,int hdrSector);
+	void AddSector(FileHeader *hdr, int hdrSector);
 };
 
 #endif // FILESYS

@@ -42,7 +42,12 @@
 bool
 FileHeader::Allocate(BitMap *freeMap, int fileSize)
 {
-    
+    readerCount = 0;
+    userCount = 0;
+    rclock = new Lock("readCount Lock");
+    rwlock = new Lock("reader-writer Lock");
+    printf("lockname: %s\n", rwlock->getName());
+
     time_t currentTime = time(NULL);
     createTime = currentTime;
     lastAccessTime = currentTime;
