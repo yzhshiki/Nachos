@@ -11,6 +11,7 @@
 #include "copyright.h"
 #include "system.h"
 #include "console.h"
+#include "synchconsole.h"
 #include "addrspace.h"
 #include "synch.h"
 
@@ -121,6 +122,7 @@ static void WriteDone(int arg) { writeDone->V(); }
 void 
 ConsoleTest (char *in, char *out)
 {
+    printf("*****\n");
     char ch;
 
     console = new Console(in, out, ReadAvail, WriteDone, 0);
@@ -133,5 +135,17 @@ ConsoleTest (char *in, char *out)
 	console->PutChar(ch);	// echo it!
 	writeDone->P() ;        // wait for write to finish
 	if (ch == 'q') return;  // if q, quit
+    }
+}
+
+static SynchConsole *synchConsole;
+void SynchConsoleTest(char *in, char *out){
+    printf("Enter SynchConsoleTest\n");
+    char ch;
+    synchConsole = new SynchConsole(in, out);
+    for(;;){
+        ch = synchConsole->GetChar();
+        synchConsole->PutChar(ch);
+        if(ch == 'q')   return;
     }
 }

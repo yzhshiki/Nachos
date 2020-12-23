@@ -37,7 +37,7 @@ OpenFile::OpenFile(int sector)
     // printf("hdr fetch\n");
     if(hdrSector > 1)
         hdr->userCount ++;
-    printf("%s OpenFile sector: %d, userCount: %d\n", currentThread->getName(), sector, hdr->userCount);
+    // printf("%s OpenFile sector: %d, userCount: %d\n", currentThread->getName(), sector, hdr->userCount);
     hdr->WriteBack(hdrSector);
     hdr->rwlock->Release();
     seekPosition = 0;
@@ -56,12 +56,12 @@ OpenFile::~OpenFile()
         hdr->FetchFrom(hdrSector);
         
         hdr->userCount --;
-        printf("%s Deleted File on Sector: %d userCount: %d\n", currentThread->getName(), hdrSector, hdr->userCount);
+        // printf("%s Deleted File on Sector: %d userCount: %d\n", currentThread->getName(), hdrSector, hdr->userCount);
         hdr->WriteBack(hdrSector);
         hdr->rwlock->Release();
 
-        hdr->FetchFrom(hdrSector);
-        printf("%s Deleted File on Sector: %d userCount: %d\n", currentThread->getName(), hdrSector, hdr->userCount);
+        // hdr->FetchFrom(hdrSector);
+        // printf("%s Deleted File on Sector: %d userCount: %d\n", currentThread->getName(), hdrSector, hdr->userCount);
         delete hdr;
         
     }

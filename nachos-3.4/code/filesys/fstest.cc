@@ -276,3 +276,36 @@ void RWFileTest(){
     // fileSystem->Print();
     delete openFile;	// close file
 }
+
+void readPipeTest(int which){
+    int len = 10, readlen = 0;
+    char *data = new char[len];
+    readlen = fileSystem->readPipe(data, len);
+    if(readlen == len){
+        printf("%s Read %d bytes : %s from pipe\n", currentThread->getName(), readlen, data);
+    }
+    else
+        printf("read failed\n");
+    return;
+}
+
+void writePipeTest(int which){
+    int len = 0, writelen = 0;
+    char *data = "1234567890";
+    len = 10;
+    writelen = fileSystem->writePipe(data, len);
+    if(writelen == len){
+        printf("%s write %d bytes : %s to pipe\n", currentThread->getName(), writelen, data);
+    }
+    else
+        printf("write failed\n");
+    return;
+}
+
+
+void PipeTest(){
+    Thread *thread1 = new Thread("Thread 1");
+    thread1->Fork(writePipeTest, 1);
+    Thread *thread2 = new Thread("Thread 2");
+    thread2->Fork(readPipeTest, 2);
+}

@@ -56,6 +56,7 @@
 // sectors, so that they can be located on boot-up.
 #define FreeMapSector 		0
 #define DirectorySector 	1
+#define PipeSector          2
 
 // Initial file sizes for the bitmap and directory; until the file system
 // supports extensible files, the directory size sets the maximum number 
@@ -63,6 +64,7 @@
 #define FreeMapFileSize 	(NumSectors / BitsInByte)
 #define NumDirEntries 		10
 #define DirectoryFileSize 	(sizeof(DirectoryEntry) * NumDirEntries)
+#define PipeFileSize        512
 
 //----------------------------------------------------------------------
 // FileSystem::FileSystem
@@ -85,6 +87,7 @@ FileSystem::FileSystem(bool format)
         Directory *directory = new Directory(NumDirEntries);
 	FileHeader *mapHdr = new FileHeader;
 	FileHeader *dirHdr = new FileHeader;
+    FileHeader *pipeHdr = new FileHeader;
 
         DEBUG('f', "Formatting the file system.\n");
 
@@ -92,14 +95,16 @@ FileSystem::FileSystem(bool format)
     // (make sure no one else grabs these!)
 	freeMap->Mark(FreeMapSector);	    
 	freeMap->Mark(DirectorySector);
-    printf("Marked\n");
+    freeMap->Mark(PipeSector);
+    // printf("Marked\n");
     // printf("freeMap->Test(0): %d\n", freeMap->Test(0));
     // Second, allocate space for the data blocks containing the contents
     // of the directory and bitmap files.  There better be enough space!
 
 	ASSERT(mapHdr->Allocate(freeMap, FreeMapFileSize));
 	ASSERT(dirHdr->Allocate(freeMap, DirectoryFileSize));
-    printf("Allocated\n");
+    ASSERT(pipeHdr->Allocate(freeMap, PipeFileSize));
+    // printf("Allocated\n");
     // Flush the bitmap and directory FileHeaders back to disk
     // We need to do this before we can "Open" the file, since open
     // reads the file header off of disk (and currently the disk has garbage
@@ -108,7 +113,8 @@ FileSystem::FileSystem(bool format)
         DEBUG('f', "Writing headers back to disk.\n");
 	mapHdr->WriteBack(FreeMapSector);    
 	dirHdr->WriteBack(DirectorySector);
-    printf("writed back\n");
+    pipeHdr->WriteBack(PipeSector);
+    // printf("writed back\n");
     // OK to open the bitmap and directory files now
     // The file system operations assume these two files are left open
     // while Nachos is running.
@@ -116,7 +122,7 @@ FileSystem::FileSystem(bool format)
         
         freeMapFile = new OpenFile(FreeMapSector);
         directoryFile = new OpenFile(DirectorySector);
-        printf("created freemapfile\n");
+        // printf("created freemapfile\n");
 
     // Once we have the files "open", we can write the initial version
     // of each file back to disk.  The directory at this point is completely
@@ -127,7 +133,7 @@ FileSystem::FileSystem(bool format)
         DEBUG('f', "Writing bitmap and directory back to disk.\n");
 	freeMap->WriteBack(freeMapFile);	 // flush changes to disk
 	directory->WriteBack(directoryFile);
-    printf("writed back freemap and direc\n");
+    // printf("writed back freemap and direc\n");
 	if (false) {
 	    freeMap->Print();
 	    directory->Print();
@@ -144,7 +150,7 @@ FileSystem::FileSystem(bool format)
         freeMapFile = new OpenFile(FreeMapSector);
         directoryFile = new OpenFile(DirectorySector);
     }
-    printf("filesystem initialized\n");
+    // printf("filesystem initialized\n");
 }
 
 //----------------------------------------------------------------------
@@ -429,4 +435,20 @@ void FileSystem::AddSector(FileHeader *hdr, int hdrSector){
     BitMap *freeMap = new BitMap(NumSectors);
     freeMap->FetchFrom(freeMapFile);
     hdr->AddSector(freeMap, freeMapFile, hdrSector);
+}
+
+int FileSystem::writePipe(char *data, int numbytes){
+    OpenFile *pipeFile = new OpenFile(PipeSector);
+    int size = pipeFile->Write(data, numbytes);
+    delete pipeFile;
+    printf("Write %d bytes of data to pipe:%s\n",size,data);
+    return size;
+}
+
+int FileSystem::readPipe(char* data,int numBytes){
+    OpenFile * pipeFile = new OpenFile(PipeSector);
+    int size = pipeFile->Read(data,numBytes);
+    delete pipeFile;
+    printf("Get %d bytes of data from pipe:%s\n",size,data);
+    return size;
 }

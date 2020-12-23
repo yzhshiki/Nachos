@@ -104,8 +104,8 @@ Machine::Machine(bool debug)
 Machine::~Machine()
 {
     delete [] mainMemory;
-    printf("Thread: %s\ttlbtimes: %d\ttlbhits: %d\taccuracy: %lf\n", 
-            currentThread->getName(), currentThread->getTlbTimes(), currentThread->getTlbHits(), double(currentThread->getTlbHits())/double(currentThread->getTlbTimes()));
+    // printf("Thread: %s\ttlbtimes: %d\ttlbhits: %d\taccuracy: %lf\n", 
+    //         currentThread->getName(), currentThread->getTlbTimes(), currentThread->getTlbHits(), double(currentThread->getTlbHits())/double(currentThread->getTlbTimes()));
     if (tlb != NULL)
         delete [] tlb;
     delete memBitMap;

@@ -6,6 +6,7 @@
         "new": "cpp",
         "unordered_map": "cpp",
         "__hash_table": "cpp",
-        "deque": "cpp"
+        "deque": "cpp",
+        "vector": "cpp"
     }
 }

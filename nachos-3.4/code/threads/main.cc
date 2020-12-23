@@ -61,7 +61,7 @@ extern int testnum;		//记录测试的线程数
 
 extern void ThreadTest(void), Copy(char *unixFile, char *nachosFile);
 extern void Print(char *file), PerformanceTest(void), multDirTest(void), DynamicTest(void);
-extern void StartProcess(char *file),  StartMultProcess(char *file),ConsoleTest(char *in, char *out);
+extern void StartProcess(char *file),  StartMultProcess(char *file),ConsoleTest(char *in, char *out), SynchConsoleTest(char *in, char *out), RWFileTest(), PipeTest();
 extern void MailTest(int networkID);
 // extern void PrintHello();
 
@@ -130,7 +130,18 @@ main(int argc, char **argv)
 	    interrupt->Halt();		// once we start the console, then 
 					// Nachos will loop forever waiting 
 					// for console input
-	}
+		}else if (!strcmp(*argv, "-sc")) {      // test the console
+	    if (argc == 1)
+	        SynchConsoleTest(NULL, NULL);
+	    else {
+		ASSERT(argc > 2);
+	        SynchConsoleTest(*(argv + 1), *(argv + 2));
+	        argCount = 3;
+	    }
+	    interrupt->Halt();		// once we start the console, then 
+					// Nachos will loop forever waiting 
+					// for console input
+		}
 
 #endif // USER_PROGRAM
 #ifdef FILESYS
@@ -157,7 +168,12 @@ main(int argc, char **argv)
 	}
 	else if (!strcmp(*argv, "-td")) {	// multDirectory test
             DynamicTest();
+	}else if (!strcmp(*argv, "-trw")) {	// multDirectory test
+            RWFileTest();
+	}else if (!strcmp(*argv, "-tp")) {	// multDirectory test
+            PipeTest();
 	}
+	
 #endif // FILESYS
 #ifdef NETWORK
         if (!strcmp(*argv, "-o")) {

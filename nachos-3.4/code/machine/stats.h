@@ -58,3 +58,4 @@ class Statistics {
 #define TimerTicks 	30    	// (average) time between timer interrupts
 
 #endif // STATS_H
+

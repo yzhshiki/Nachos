@@ -86,6 +86,7 @@ Console::~Console()
 void
 Console::CheckCharAvail()
 {
+    // printf("CheckChar\n");
     char c;
 
     // schedule the next time to poll for a packet
@@ -113,6 +114,7 @@ Console::CheckCharAvail()
 void
 Console::WriteDone()
 {
+    // printf("writeDone\n");
     putBusy = FALSE;
     stats->numConsoleCharsWritten++;
     (*writeHandler)(handlerArg);
@@ -127,6 +129,7 @@ Console::WriteDone()
 char
 Console::GetChar()
 {
+    // printf("Getchar\n");
    char ch = incoming;
 
    incoming = EOF;
@@ -142,6 +145,7 @@ Console::GetChar()
 void
 Console::PutChar(char ch)
 {
+    // printf("PutChar\n");
     ASSERT(putBusy == FALSE);
     WriteFile(writeFileNo, &ch, sizeof(char));
     putBusy = TRUE;

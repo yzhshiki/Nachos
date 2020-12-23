@@ -83,8 +83,8 @@ Thread::~Thread()
 {
     DEBUG('t', "Deleting thread \"%s\"\n", name);
     #ifdef USER_PROGRAM
-    printf("Thread: %s\ttlbtimes: %d\ttlbhits: %d\taccuracy: %lf\n", 
-            this->name, this->tlbtimes, tlbhits, double(tlbhits)/double(this->tlbtimes));
+    // printf("Thread: %s\ttlbtimes: %d\ttlbhits: %d\taccuracy: %lf\n", 
+    //         this->name, this->tlbtimes, tlbhits, double(tlbhits)/double(this->tlbtimes));
     #endif
     ASSERT(this != currentThread);
     if (stack != NULL)
@@ -214,7 +214,7 @@ Thread::Yield ()
     
     ASSERT(this == currentThread);
     
-    // printf("Yielding thread \"%s\"\n", getName());
+    printf("Yielding thread \"%s\"\n", getName());
     DEBUG('t', "Yielding thread \"%s\"\n", getName());
     
     nextThread = scheduler->FindNextToRun();
