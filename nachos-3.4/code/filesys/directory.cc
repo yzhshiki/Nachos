@@ -161,8 +161,10 @@ Directory::Remove(char *name)
 	return FALSE; 		// name not in directory
     FileHeader *hdr = new FileHeader;
     hdr->FetchFrom(table[i].sector);
-    if(hdr->userCount > 0)      //如果该文件还有用户打开着
+    if(hdr->userCount > 0){      //如果该文件还有用户打开着
+        printf("Unable to delete File because there is someone using it\n");
         return FALSE;
+    }
     table[i].inUse = FALSE;
     return TRUE;	
 }

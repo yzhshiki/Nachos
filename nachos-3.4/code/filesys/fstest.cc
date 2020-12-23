@@ -237,3 +237,42 @@ void DynamicTest(){
     // fileSystem->Print();
     delete openFile;	// close file
 }
+
+void readTest(int which){
+    printf("readTest begin\n");
+    char *into = new char[20];
+    OpenFile *openFile = fileSystem->Open("dynamic.txt");
+    printf("readTest opened file\n");
+    if (openFile == NULL) {
+        printf("RWFile test: unable to open dynamic.txt\n");
+        return;
+    }
+    for(int i = 0; i < 5; i++){
+        openFile->Read(into, ContentSize);
+        printf("Thread %s read %d bytes\n", currentThread->getName(), ContentSize);
+    }
+    
+    delete openFile;
+}
+
+void RWFileTest(){ 
+    fileSystem->Create("dynamic.txt", 0, false);
+        OpenFile *openFile;    
+    int i, numBytes;
+
+    openFile = fileSystem->Open("dynamic.txt");
+    //printf("%d\n", openFile->hdr->nextFdrSector);
+    if (openFile == NULL) {
+        printf("RWFile test: unable to open dynamic.txt\n");
+        return;
+    }
+    Thread *thread1 = new Thread("Thread 1");
+    thread1->Fork(readTest, 1);
+    for (i = 0; i < 5; i++) {
+        numBytes = openFile->Write(Contents, ContentSize);
+        // currentThread->Yield();
+        printf("Thread %s Write %d bytes:%s\n",currentThread->getName(),numBytes,Contents);
+    }
+    // fileSystem->Print();
+    delete openFile;	// close file
+}
