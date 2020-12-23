@@ -113,6 +113,10 @@ void
 FileHeader::FetchFrom(int sector)
 {
     synchDisk->ReadSector(sector, (char *)this);
+    if(userCount == 0){
+        rwlock = new Lock("read-write lock");
+        rclock = new Lock("reader count lock");
+    }
 }
 
 //----------------------------------------------------------------------

@@ -30,17 +30,16 @@
 OpenFile::OpenFile(int sector)
 { 
     hdr = new FileHeader;
-    printf("new hdr of sector: %d\n", sector);
     hdrSector = sector;
     hdr->FetchFrom(hdrSector);
-    // printf("acquire rwlock\n");
-    // printf("lock: %d\n", hdr->rwlock);
-    // hdr->rwlock->Acquire();
-    // printf("hdr fetch\n");
-    // hdr->FetchFrom(hdrSector);
-    // hdr->userCount ++;
-    // hdr->WriteBack(hdrSector);
-    // hdr->rwlock->Release();
+    printf("OpenFile  sector: %d, userCount: %d\n", sector, hdr->userCount);
+    printf("lock: %d\n", hdr->rwlock->getName());
+    hdr->rwlock->Acquire();
+    printf("hdr fetch\n");
+    if(hdrSector > 1)
+        hdr->userCount ++;
+    hdr->WriteBack(hdrSector);
+    hdr->rwlock->Release();
     seekPosition = 0;
 }
 
@@ -51,12 +50,17 @@ OpenFile::OpenFile(int sector)
 
 OpenFile::~OpenFile()
 {
-    // hdr->rwlock->Acquire();
-    // hdr->FetchFrom(hdrSector);
-    // hdr->userCount --;
-    // hdr->WriteBack(hdrSector);
-    // hdr->rwlock->Release();
-    delete hdr;
+    if(hdrSector> 1){
+        printf("DeletingFile   Sector: %d userCount: %d\n", hdrSector, hdr->userCount);
+        hdr->rwlock->Acquire();
+        hdr->FetchFrom(hdrSector);
+        
+        hdr->userCount --;
+        printf("Deleted File   Sector: %d userCount: %d\n", hdrSector, hdr->userCount);
+        hdr->WriteBack(hdrSector);
+        hdr->rwlock->Release();
+        delete hdr;
+    }
 }
 
 //----------------------------------------------------------------------
@@ -89,28 +93,28 @@ OpenFile::Seek(int position)
 int
 OpenFile::Read(char *into, int numBytes)
 {
-    // hdr->rclock->Acquire();
-    // hdr->FetchFrom(hdrSector);
-    // hdr->readerCount ++;
-    // hdr->WriteBack(hdrSector);
-    // if(hdr->readerCount == 1)
-    //     hdr->rwlock->Acquire();
-    // hdr->rclock->Release();
+    hdr->rclock->Acquire();
+    hdr->FetchFrom(hdrSector);
+    hdr->readerCount ++;
+    hdr->WriteBack(hdrSector);
+    if(hdr->readerCount == 1)
+        hdr->rwlock->Acquire();
+    hdr->rclock->Release();
 
-    // hdr->FetchFrom(hdrSector);
+    hdr->FetchFrom(hdrSector);
     int result = ReadAt(into, numBytes, seekPosition);
     time_t currentTime = time(NULL);
     hdr->lastAccessTime = currentTime; 
     seekPosition += result;
     hdr->WriteBack(hdrSector);
 
-    // hdr->rclock->Acquire();
-    // hdr->FetchFrom(hdrSector);
-    // hdr->readerCount --;
-    // hdr->WriteBack(hdrSector);
-    // if(hdr->readerCount == 0)
-    //     hdr->rwlock->Release();
-    // hdr->rclock->Release();
+    hdr->rclock->Acquire();
+    hdr->FetchFrom(hdrSector);
+    hdr->readerCount --;
+    hdr->WriteBack(hdrSector);
+    if(hdr->readerCount == 0)
+        hdr->rwlock->Release();
+    hdr->rclock->Release();
 
     return result;
 }
@@ -118,7 +122,7 @@ OpenFile::Read(char *into, int numBytes)
 int
 OpenFile::Write(char *into, int numBytes)
 {
-    // hdr->rwlock->Acquire();
+    hdr->rwlock->Acquire();
 
     hdr->FetchFrom(hdrSector);
     int result = WriteAt(into, numBytes, seekPosition);
@@ -132,7 +136,7 @@ OpenFile::Write(char *into, int numBytes)
     // printf("Writed %d\n", result);
 
     hdr->WriteBack(hdrSector);
-    // hdr->rwlock->Release();
+    hdr->rwlock->Release();
     return result;
 }
 

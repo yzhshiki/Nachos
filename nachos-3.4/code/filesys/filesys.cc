@@ -237,6 +237,8 @@ FileSystem::Create(char *name, int initialSize, bool isDirectory)
         delete freeMap;
     }
     // printf("directory->Find(name): %d\n", directory->Find(name));
+    if(fileDirSec > 1)
+        delete fileDirFile;
     delete directory;
     return success;
 }
@@ -393,6 +395,8 @@ int FileSystem::findDirectory(char *name, int curDirSec){
         Directory *curDir = new Directory(DirectoryFileSize);
         OpenFile *curDirFile = new OpenFile(curDirSec);
         curDir->FetchFrom(curDirFile);
+        if(curDirSec > 1)
+            delete curDirFile;
         int chdDirSec = curDir->Find(chdDirName);
         if(chdDirSec == -1)     //当前目录下没有这个子目录
             return -1;

@@ -186,6 +186,8 @@ Directory::List()
             OpenFile *chdDirFile = new OpenFile(table[i].sector);
             Directory *chdDir = new Directory((sizeof(DirectoryEntry) * 10));
             chdDir->FetchFrom(chdDirFile);
+            if(table[i].sector > 1)
+                delete chdDirFile;
             chdDir->List();
             printf("***in %s***\n", table[i].name);
         }

@@ -69,7 +69,7 @@ class FileHeader {
     time_t createTime;	// Create time of the file
     time_t lastAccessTime;	// Last access time of the file
     time_t lastWriteTime;	// Last write time of the file
-    int readerCount;  //读者数量，即正在openfile的read函数数量
+    int readerCount;  //读者数量，即正在调用read函数的线程数量
     int userCount;    //用户数量，即openfile数
     Lock *rwlock;   //读写锁
     Lock *rclock;   //读者数量锁
