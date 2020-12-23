@@ -278,11 +278,11 @@ void RWFileTest(){
 }
 
 void readPipeTest(int which){
-    int len = 10, readlen = 0;
+    int len = 100, readlen = 0;
     char *data = new char[len];
     readlen = fileSystem->readPipe(data, len);
     if(readlen == len){
-        printf("%s Read %d bytes : %s from pipe\n", currentThread->getName(), readlen, data);
+        printf("%s Read bytes : %s from pipe\n", currentThread->getName(), data);
     }
     else
         printf("read failed\n");
@@ -291,11 +291,13 @@ void readPipeTest(int which){
 
 void writePipeTest(int which){
     int len = 0, writelen = 0;
-    char *data = "1234567890";
-    len = 10;
+    char *data = new char[100];
+    len = 100;
+    printf("input:");
+    scanf("%s", data);
     writelen = fileSystem->writePipe(data, len);
     if(writelen == len){
-        printf("%s write %d bytes : %s to pipe\n", currentThread->getName(), writelen, data);
+        printf("%s write bytes : %s to pipe\n", currentThread->getName(), data);
     }
     else
         printf("write failed\n");

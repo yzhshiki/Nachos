@@ -441,7 +441,7 @@ int FileSystem::writePipe(char *data, int numbytes){
     OpenFile *pipeFile = new OpenFile(PipeSector);
     int size = pipeFile->Write(data, numbytes);
     delete pipeFile;
-    printf("Write %d bytes of data to pipe:%s\n",size,data);
+    // printf("Write %d bytes of data to pipe:%s\n",size,data);
     return size;
 }
 
@@ -449,6 +449,6 @@ int FileSystem::readPipe(char* data,int numBytes){
     OpenFile * pipeFile = new OpenFile(PipeSector);
     int size = pipeFile->Read(data,numBytes);
     delete pipeFile;
-    printf("Get %d bytes of data from pipe:%s\n",size,data);
+    // printf("Get %d bytes of data from pipe:%s\n",size,data);
     return size;
 }
