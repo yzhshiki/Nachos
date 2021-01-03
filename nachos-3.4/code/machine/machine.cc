@@ -126,7 +126,6 @@ void
 Machine::RaiseException(ExceptionType which, int badVAddr)
 {
     DEBUG('m', "Exception: %s\n", exceptionNames[which]);
-    
 //  ASSERT(interrupt->getStatus() == UserMode);
     registers[BadVAddrReg] = badVAddr;
     DelayedLoad(0, 0);			// finish anything in progress
@@ -312,4 +311,10 @@ void Machine::freeMem(){
 int Machine::pageReplace(){
     srand((unsigned)time(NULL));
     return rand() % NumPhysPages;
+}
+void
+Machine::AdvancePC(){
+	WriteRegister(PrevPCReg,registers[PCReg]);
+	WriteRegister(PCReg,registers[PCReg]+4);
+	WriteRegister(NextPCReg,registers[NextPCReg]+4);
 }

@@ -37,6 +37,7 @@ void Thread::init(char* threadName)
     this->stackTop = NULL;
     this->stack = NULL;
     this->status = JUST_CREATED;
+    this->waitingList = new List();
 
 #ifdef USER_PROGRAM
     space = NULL;
@@ -214,7 +215,7 @@ Thread::Yield ()
     
     ASSERT(this == currentThread);
     
-    printf("Yielding thread \"%s\"\n", getName());
+    // printf("Yielding thread \"%s\"\n", getName());
     DEBUG('t', "Yielding thread \"%s\"\n", getName());
     
     nextThread = scheduler->FindNextToRun();

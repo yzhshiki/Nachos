@@ -48,7 +48,7 @@
 // This is used by Thread::Fork and for interrupt handlers, as well
 // as a couple of other places.
 
-typedef void (*VoidFunctionPtr)(int arg); 
+typedef void (*VoidFunctionPtr)(int arg);
 typedef void (*VoidNoArgFunctionPtr)(); 
 
 

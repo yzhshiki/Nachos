@@ -87,6 +87,7 @@ ShortToMachine(unsigned short shortword) { return ShortToHost(shortword); }
 bool
 Machine::ReadMem(int addr, int size, int *value)
 {
+	
     int data;
     ExceptionType exception;
     int physicalAddress;

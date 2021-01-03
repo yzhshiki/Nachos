@@ -210,6 +210,7 @@ class Machine {
 		void freeMem();
 		int pageReplace();
 		int allocDisk(){ return diskBitMap->Find(); }
+		void AdvancePC();
 
 		char *disk;
 		BitMap *memBitMap;

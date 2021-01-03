@@ -39,7 +39,7 @@
 
 #include "copyright.h"
 #include "utility.h"
-
+#include "list.h"
 #ifdef USER_PROGRAM
 #include "machine.h"
 #include "addrspace.h"
@@ -112,9 +112,7 @@ class Thread {
     ThreadStatus status;		// ready, running or blocked
     char* name;
 
-    void StackAllocate(VoidFunctionPtr func, int arg);
-    					// Allocate a stack for thread.
-					// Used internally by Fork()
+    
 
 #ifdef USER_PROGRAM
 // A thread running a user program actually has *two* sets of CPU registers -- 
@@ -158,6 +156,11 @@ public:
   int getPriority(){ return priority; }
   void setPriority(int prio){ priority = prio; }
   
+  List* waitingList;
+  int exitCode;
+  void StackAllocate(VoidFunctionPtr func, int arg);
+    					// Allocate a stack for thread.
+					// Used internally by Fork()
   
 };
 

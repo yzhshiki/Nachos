@@ -138,14 +138,14 @@ ConsoleTest (char *in, char *out)
     }
 }
 
-static SynchConsole *synchConsole;
-void SynchConsoleTest(char *in, char *out){
-    printf("Enter SynchConsoleTest\n");
-    char ch;
-    synchConsole = new SynchConsole(in, out);
-    for(;;){
-        ch = synchConsole->GetChar();
-        synchConsole->PutChar(ch);
-        if(ch == 'q')   return;
-    }
-}
+// static SynchConsole *synchConsole;
+// void SynchConsoleTest(char *in, char *out){
+//     printf("Enter SynchConsoleTest\n");
+//     char ch;
+//     synchConsole = new SynchConsole(in, out);
+//     for(;;){
+//         ch = synchConsole->GetChar();
+//         synchConsole->PutChar(ch);
+//         if(ch == 'q')   return;
+//     }
+// }

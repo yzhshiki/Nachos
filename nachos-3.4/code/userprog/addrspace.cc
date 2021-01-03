@@ -123,6 +123,20 @@ AddrSpace::AddrSpace(OpenFile *executable)
 
 }
 
+AddrSpace::AddrSpace(Thread* toCopy) {
+	numPages = toCopy->space->numPages;
+	pageTable = new TranslationEntry[numPages];
+	for (int i = 0; i < numPages; i++) {
+		// if (toCopy->space->pageTable[i].codeData == TRUE) {
+		// 	memcpy(&pageTable[i], &(toCopy->space->pageTable[i]),
+		// 			sizeof(TranslationEntry));
+		// }
+        memcpy(&pageTable[i], &(toCopy->space->pageTable[i]),
+					sizeof(TranslationEntry));
+		pageTable[i].virtualPage = i;
+	}
+}
+
 //----------------------------------------------------------------------
 // AddrSpace::~AddrSpace
 // 	Dealloate an address space.  Nothing for now!
@@ -193,4 +207,9 @@ void AddrSpace::RestoreState()
 {
     machine->pageTable = pageTable;
     machine->pageTableSize = numPages;
+}
+
+void AddrSpace::setPC(int func) {
+	machine->WriteRegister(PCReg, func);
+	machine->WriteRegister(NextPCReg, func + 4);
 }

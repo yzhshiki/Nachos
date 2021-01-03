@@ -59,6 +59,7 @@ class Scheduler {
     int checkTicks(Thread *t){ return tid_Ticks[t->getTid()]; }
     void addTicks(Thread *t, int ticks){ tid_Ticks[t->getTid()] += ticks; } //onetick时调用
     void resetTicks(Thread *t){ tid_Ticks[t->getTid()] = 0; }
+    Thread* getThreadByTid(int tid);
 
 };
 

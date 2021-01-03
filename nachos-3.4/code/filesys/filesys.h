@@ -55,7 +55,7 @@ class FileSystem {
 
     OpenFile* Open(char *name) {
 	  int fileDescriptor = OpenForReadWrite(name, FALSE);
-	  printf("fileDescriptor == -1\n");
+	//   printf("fileDescriptor == -1\n");
 	  if (fileDescriptor == -1) return NULL;
 	  return new OpenFile(fileDescriptor);
       }

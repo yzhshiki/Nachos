@@ -26,6 +26,9 @@
 #include "syscall.h"
 #include "machine.h"
 #include "noff.h"
+#include "filesys.h"
+#include "addrspace.h"
+extern void StartProcess(char *fileName);
 //----------------------------------------------------------------------
 // ExceptionHandler
 // 	Entry point into the Nachos kernel.  Called when a user program
@@ -49,22 +52,226 @@
 //	are in machine.h.
 //----------------------------------------------------------------------
 
+char* translateAddr(int vaddr) {
+	int paddr = 0;
+    machine->Translate(vaddr, &paddr, 4, FALSE);
+    return machine->mainMemory + paddr;
+}
+
+void exec_func(char* fileName){
+    printf("Entering exec_func.\n");
+
+    printf("Try to open file %s.\n", fileName);
+    OpenFile *executable = fileSystem->Open(fileName);
+    AddrSpace *space;
+    if(executable == NULL){
+        printf("Unable to open file %s\n", fileName);
+        return;
+    }
+    space = new AddrSpace(executable);
+    currentThread->space = space;
+    delete executable;
+
+    space->InitRegisters();
+    space->RestoreState();
+    machine->Run();
+}
+
+void StartForkProcess(int func) {
+
+	currentThread->space->InitRegisters(); // set the initial register values
+	currentThread->space->RestoreState();  // load page table register
+	currentThread->space->setPC(func);
+	machine->Run(); // jump to the user progam
+	ASSERT(FALSE);  // machine->Run never returns;
+}
+
+void SyscallHandler(int type){
+    switch (type)
+    {
+    case SC_Halt:{
+        DEBUG('a', "Shutdown, initiated by user program.\n");
+    	interrupt->Halt();
+        break;
+    }
+    case SC_Create:{
+        printf("SC_Create called\n");
+        int address = machine->ReadRegister(4); //从r4读到文件名变量的地址，然后读出文件名
+        printf("Create address: %d\n", address);
+        int len = 0 ,value = 1;
+        while(value != '\0' ){ 
+            machine->ReadMem(address++,1,&value);
+			len++;
+        }
+        char* fileName = new char[len];
+        address -= len;
+		for(int i = 0; i < len; i++){
+			machine->ReadMem(address+i,1,&value);
+			fileName[i] = (char)value;
+		}
+        printf("Creating File: %s\n", fileName);
+        fileSystem->Create(fileName, 0);
+        machine->AdvancePC();   //一定要pc前进，不然会循环此syscall
+        break;
+    }
+    case SC_Open:{
+        printf("SC_Open called\n");
+        int address = machine->ReadRegister(4);
+        int len = 0 ,value = 1;
+        while(value != '\0' ){ 
+            machine->ReadMem(address++,1,&value);
+			len++;
+        }
+        char* fileName = new char[len];
+        address -= len;
+		for(int i = 0; i < len; i++){
+			machine->ReadMem(address+i,1,&value);
+			fileName[i] = (char)value;
+		}
+        OpenFile *file = fileSystem->Open(fileName);
+        machine->WriteRegister(2, int(file));   //将文件描述符写回r2
+        machine->AdvancePC();
+        break;
+    }
+    case SC_Close:{
+        printf("SC_Close called\n");
+        int fileId = machine->ReadRegister(4);
+        OpenFile *file = (OpenFile*)fileId;
+        delete file;
+        machine->AdvancePC();
+        break;
+    }
+    case SC_Read:{
+        printf("SC_Read called\n");
+        int address = machine->ReadRegister(4);     //要读的数据在内存的地址
+        int len = machine->ReadRegister(5);         //数据长度
+        int fd = machine->ReadRegister(6);          //文件描述符
+        char *data = new char[len];                 //缓冲，先从文件取得数据然后写入内存
+        int result;
+        if(fd!=0){                                  //从文件到缓冲
+            OpenFile *file = (OpenFile*) fd;
+            result = file->Read(data, len);
+        }
+        else{
+            for(int i = 0; i < len; i ++)
+                data[i] = getchar();
+            result = len;
+        }
+        for(int i = 0; i < len; i++)                //从缓冲到内存
+            machine->WriteMem(address+i, 1, int(data[i]));
+        machine->WriteRegister(2, result);
+        machine->AdvancePC();
+        break;
+    }
+    case SC_Write:{
+        printf("SC_Write called\n");
+        int address = machine->ReadRegister(4);
+        int len = machine->ReadRegister(5);
+        int fd = machine->ReadRegister(6);
+        char* data = new char[len];
+        int value;
+        for(int i = 0; i < len; i ++){              //从内存到缓冲
+            machine->ReadMem(address+i, 1, &value);
+            data[i] = char(value);
+        }
+        if(fd!=1){                                  //从缓冲到文件
+            OpenFile* file = (OpenFile*) fd;
+            file->Write(data, len);
+        }
+        else{
+            for(int i = 0; i < len; i ++)
+                putchar(data[i]);
+            printf("\n");
+        }
+        machine->AdvancePC();
+        break;
+    }
+    case SC_Exec:{
+        printf("SC_Exec called\n");
+        int address = machine->ReadRegister(4);
+        printf("Exec address: %d\n", address);
+        int len = 0 ,value = 1;
+        while(value != '\0' ){ 
+            machine->ReadMem(address++,1,&value);
+			len++;
+        }
+        char* fileName = new char[len];
+        address -= len;
+		for(int i = 0; i < len; i++){
+			machine->ReadMem(address+i,1,&value);
+			fileName[i] = (char)value;
+		}
+        printf("Exec File: %s\n", fileName);
+        Thread *newThread = new Thread("new Thread");
+        newThread->Fork(exec_func, (void *)fileName);
+        machine->WriteRegister(2, newThread->getTid());
+        machine->AdvancePC();
+        break;
+    }
+    case SC_Exit:{
+        IntStatus oldLevel = interrupt->SetLevel(IntOff);
+		while (!currentThread->waitingList->IsEmpty()) {
+			Thread *t = (Thread *) currentThread->waitingList->Remove();
+			if (t != NULL) {
+				t->exitCode = machine->ReadRegister(4);
+				scheduler->ReadyToRun(t);
+			}
+		}
+		interrupt->SetLevel(oldLevel);
+        printf("Exiting userprog of thread: %s\n", currentThread->getName());
+        // machine->freeMem();
+		currentThread->Finish();
+        if(currentThread->space!=NULL){
+            delete currentThread->space;
+        }
+        machine->AdvancePC();
+		break;
+    }
+    case SC_Join:{
+        printf("SC_Join called\n");
+        int tid = machine->ReadRegister(4);
+        Thread *waitFor = scheduler->getThreadByTid(tid);
+        waitFor->waitingList->Append((void *) currentThread);
+        printf("thread %d join thread %d\n", currentThread->getTid(),
+			waitFor->getTid());
+        IntStatus oldLevel = interrupt->SetLevel(IntOff);
+        currentThread->Sleep();
+        interrupt->SetLevel(oldLevel);
+        machine->WriteRegister(2, currentThread->exitCode);
+        machine->AdvancePC();
+        break;
+    }
+    case SC_Yield:{
+        printf("SC_Yield Called for thread %s\n",currentThread->getName());
+		currentThread->Yield();
+        machine->AdvancePC();
+        break;
+    }
+    case SC_Fork: {
+        printf("SC_Fork Called for thread %s\n",currentThread->getName());
+        int func = machine->ReadRegister(4);
+        Thread* fork = new Thread("fork");
+        fork->StackAllocate(StartForkProcess, func);
+        AddrSpace* newspace = new AddrSpace(currentThread);
+        fork->space = newspace;
+        printf("forking func addr %x in thread : %d\n", func, currentThread->getTid());
+        scheduler->ReadyToRun(fork);
+        machine->AdvancePC();
+        break;
+    }
+    default:
+        break;
+    }
+}
+
 void
 ExceptionHandler(ExceptionType which)
 {
     int type = machine->ReadRegister(2);
     //如果是异常是系统调用类型 且是halt调用
-    if ((which == SyscallException) && (type == SC_Halt)) {
-	DEBUG('a', "Shutdown, initiated by user program.\n");
-   	interrupt->Halt();
-    }
-    else if(which == SyscallException && type == SC_Exit){
-        printf("Exiting userprog of thread: %s\n", currentThread->getName());
-        machine->freeMem();
-        currentThread->Finish();
-        if(currentThread->space!=NULL){
-            delete currentThread->space;
-        }
+    
+    if(which == SyscallException){
+        SyscallHandler(type);
     }
     else if(which == TLBMissException) {
         int BadVAddr = machine->ReadRegister(BadVAddrReg);
@@ -112,7 +319,7 @@ ExceptionHandler(ExceptionType which)
         {
             OpenFile *executable = fileSystem->Open(currentThread->filename);
             executable->ReadAt(&(machine->mainMemory[ppn * PageSize]), PageSize, vpn * PageSize + sizeof(NoffHeader));
-            printf("Thread: %s\tRead Page %d form FILE to mainMemory\n", currentThread->getName(), ppn);
+            // printf("Thread: %s\tRead Page %d from FILE to mainMemory\n", currentThread->getName(), ppn);
         }
 
         //修改页表与倒排页表
