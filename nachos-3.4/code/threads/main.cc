@@ -130,7 +130,11 @@ main(int argc, char **argv)
 	    interrupt->Halt();		// once we start the console, then 
 					// Nachos will loop forever waiting 
 					// for console input
-		}
+		} else if (!strcmp(*argv, "-mx")) {        	// run a user program
+	    ASSERT(argc > 1);
+            StartMultProcess(*(argv + 1));
+            argCount = 2;
+        } 
 		// else if (!strcmp(*argv, "-sc")) {      // test the console
 	    // if (argc == 1)
 	    //     SynchConsoleTest(NULL, NULL);

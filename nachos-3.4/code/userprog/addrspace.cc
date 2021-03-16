@@ -213,3 +213,12 @@ void AddrSpace::setPC(int func) {
 	machine->WriteRegister(PCReg, func);
 	machine->WriteRegister(NextPCReg, func + 4);
 }
+
+void AddrSpace::showSpace(){
+    printf("%s's space, ", currentThread->getName());
+    printf("numPages: %d\n", numPages);
+    for (int i = 0; i < numPages; i++) {
+        printf("page %d : vpn: %d ppn: %d valid: %d\n", i, pageTable[i].virtualPage, pageTable[i].physicalPage, pageTable[i].valid);
+    }
+    printf("\n");
+}

@@ -33,6 +33,7 @@ class AddrSpace {
     void RestoreState();		// info on a context switch 
     void setInvalid(int vpn){ pageTable[vpn].valid = false;}
     void setPC(int func);
+    void showSpace();
   private:
     TranslationEntry *pageTable;	// Assume linear page table translation
 					// for now!

@@ -8,6 +8,9 @@
         "__hash_table": "cpp",
         "deque": "cpp",
         "vector": "cpp",
-        "__locale": "cpp"
+        "__locale": "cpp",
+        "iterator": "cpp",
+        "type_traits": "cpp",
+        "typeinfo": "cpp"
     }
 }

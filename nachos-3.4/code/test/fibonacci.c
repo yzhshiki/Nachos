@@ -4,7 +4,7 @@
 
 #include "syscall.h"
 
-#define N 100
+#define N 5
 
 int
 main()

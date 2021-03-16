@@ -56,7 +56,8 @@ void MultUserprogFunc(int which){
 	printf("Unable to open file %s\n", filename);
 	return;
     }
-    space = new AddrSpace(executable);    
+    space = new AddrSpace(executable); 
+    space->showSpace();
     currentThread->space = space;
 
     delete executable;			// close file

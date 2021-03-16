@@ -84,11 +84,11 @@ int select(int numBits, void *readFds, void *writeFds, void *exceptFds,
 // extern int sendto(int s, void *msg, int len, int flags, void *to, int tolen);
 
 
-void srand(unsigned seed);
-int rand(void);
-unsigned sleep(unsigned);
-void abort();
-void exit(int);
+// void srand(unsigned seed);
+// int rand(void);
+// unsigned sleep(unsigned);
+// void abort();
+// void exit(int);
   //int mprotect(char *addr, int len, int prot);
 
   //int socket(int, int, int);

@@ -129,6 +129,62 @@ Yield:
 	syscall
 	j	$31
 	.end Yield
+	
+	.globl Pwd
+	.ent Pwd
+Pwd:
+	addiu $2,$0,SC_Pwd
+	syscall
+	j $31
+	.end Pwd
+
+	.globl Ls
+	.ent Ls
+Ls:
+	addiu $2,$0,SC_Ls
+	syscall
+	j $31
+	.end Ls
+
+	.globl Cd
+	.ent Cd
+Cd:
+	addiu $2,$0,SC_Cd
+	syscall
+	j $31
+	.end Cd
+
+	.globl Remove
+	.ent Remove
+Remove:
+	addiu $2,$0,SC_Remove
+	syscall
+	j $31
+	.end Remove
+
+	.globl CreateDir
+	.ent CreateDir
+CreateDir:
+	addiu $2,$0,SC_CreateDir
+	syscall
+	j $31
+	.end CreateDir
+
+	.globl RemoveDir
+	.ent RemoveDir
+RemoveDir:
+	addiu $2,$0,SC_RemoveDir
+	syscall
+	j $31
+	.end RemoveDir
+
+	.globl Help
+	.ent Help
+Help:
+	addiu $2,$0,SC_Help
+	syscall
+	j $31
+	.end Help
 
 /* dummy function to keep gcc happy */
         .globl  __main

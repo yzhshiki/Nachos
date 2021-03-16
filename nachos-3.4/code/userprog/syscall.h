@@ -29,6 +29,13 @@
 #define SC_Close	8
 #define SC_Fork		9
 #define SC_Yield	10
+#define SC_Pwd      11
+#define SC_Ls       12
+#define SC_Cd       13
+#define SC_Remove   14
+#define SC_CreateDir    15
+#define SC_RemoveDir    16
+#define SC_Help        17
 
 #ifndef IN_ASM
 
@@ -125,6 +132,15 @@ void Fork(void (*func)());
  */
 void Yield();		
 
+void Pwd();
+void Cd();
+void Ls();
+void Remove(char *name);
+void CreateDir(char *name);
+void RemoveDir(char *name);
+void Help();
+
 #endif /* IN_ASM */
 
 #endif /* SYSCALL_H */
+

@@ -259,7 +259,7 @@ Thread::Sleep ()
     status = BLOCKED;
     while ((nextThread = scheduler->FindNextToRun()) == NULL)
 	interrupt->Idle();	// no one to run, wait for an interrupt
-        
+    printf("Thread %s sleep and Thread %s start to run\n", currentThread->getName(), nextThread->getName());
     scheduler->Run(nextThread); // returns when we've been signalled
 }
 
